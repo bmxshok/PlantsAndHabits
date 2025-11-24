@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="NoTintButton" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@null</item>
+        <item name="backgroundTintMode">multiply</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:foregroundTint">@null</item>
+    </style>
+</resources>
