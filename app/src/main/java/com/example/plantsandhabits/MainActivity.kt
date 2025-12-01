@@ -57,8 +57,8 @@ class MainActivity : AppCompatActivity() {
         showFragment(fragment, addToBackStack = true)
     }
 
-    fun showPlantDetailFragment(plant: Plant) {
+    /*fun showPlantDetailFragment(plant: Plant) {
         val fragment = PlantDetailFragment.newInstance(plant)
         showFragment(fragment, addToBackStack = true)
-    }
+    }*/
 }
