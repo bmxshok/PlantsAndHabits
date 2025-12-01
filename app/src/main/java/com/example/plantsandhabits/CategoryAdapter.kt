@@ -18,7 +18,7 @@ class CategoryAdapter(
         private val imgArrow: ImageView = itemView.findViewById(R.id.imgArrow)
 
         fun bind(category: Category) {
-            imgCategory.setImageResource(category.imageRes)
+            ///обработка текстового имени изображения
             tvCategoryName.text = category.name
 
             itemView.setOnClickListener {

@@ -31,7 +31,7 @@
         app:layout_constraintEnd_toStartOf="@id/imgArrow"/>
 
     <TextView
-        android:id="@+id/tvScienceName"
+        android:id="@+id/tvScientificName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Научное название"

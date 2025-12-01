@@ -1,5 +1,6 @@
 package com.example.plantsandhabits
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,20 +10,34 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.util.ArrayList
 
 class PlantListFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PlantAdapter
+    private val plants = mutableListOf<Plant>()
 
-    //тестовые данные растений (одинаковые для всех категорий)
-    private val testPlants = listOf(
-        Plant(1, "Фикус Бенджамина", "Ficus benjamina"),
-        Plant(2, "Спатифиллум", "Spathiphyllum"),
-        Plant(3, "Замиокулькас", "Zamioculcas"),
-        Plant(4, "Монстера", "Monstera"),
-        Plant(5, "Сансевиерия", "Sansevieria")
-    )
+    companion object {
+        fun newInstance(categoryName: String, plantList: List<Plant>): PlantListFragment {
+            val fragment = PlantListFragment()
+            val args = Bundle()
+            args.putString("category_name", categoryName)
+            args.putParcelableArrayList("plants", ArrayList(plantList))
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Получаем растения из аргументов
+        arguments?.getParcelableArrayList<Plant>("plants")?.let {
+            plants.clear()
+            plants.addAll(it)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,27 +61,16 @@ class PlantListFragment : Fragment() {
     private fun setupRecyclerView(view: View) {
         recyclerView = view.findViewById(R.id.rvPlants)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        adapter = PlantAdapter(testPlants) { plant ->
+        adapter = PlantAdapter(plants) { plant ->
             onPlantClick(plant)
         }
         recyclerView.adapter = adapter
     }
 
     private fun onPlantClick(plant: Plant) {
-        showMessage("Выбрано растение: ${plant.name}")
-    }
-
-    private fun showMessage(message: String) {
-        android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
-    }
-
-    companion object {
-        fun newInstance(categoryName: String): PlantListFragment {
-            val fragment = PlantListFragment()
-            val args = Bundle()
-            args.putString("category_name", categoryName)
-            fragment.arguments = args
-            return fragment
-        }
+        val intent = Intent(requireActivity(), NoMenuActivity::class.java)
+        intent.putExtra("plant", plant)
+        intent.putExtra("from_garden", true)
+        startActivity(intent)
     }
 }

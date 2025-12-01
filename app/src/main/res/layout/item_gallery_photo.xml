@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="120dp"
+    android:layout_height="160dp"
+    android:layout_margin="8dp">
+
+    <!-- Фото -->
+    <ImageView
+        android:id="@+id/imgGalleryPhoto"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/sample_category"
+        android:background="@drawable/rounded_photo"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/tvPhotoDate" />
+
+    <!-- Дата фото -->
+    <TextView
+        android:id="@+id/tvPhotoDate"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="01.12.2024"
+        android:textSize="12sp"
+        android:textColor="@color/light_gray"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/imgGalleryPhoto"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Кнопка удаления -->
+    <ImageView
+        android:id="@+id/btnDeletePhoto"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_delete"
+        android:background="@drawable/circle_white"
+        android:padding="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

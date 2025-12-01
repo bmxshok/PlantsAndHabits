@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 
 class MainActivity : AppCompatActivity() {
+    val database by lazy { AppDatabase.getDatabase(this) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -51,8 +52,13 @@ class MainActivity : AppCompatActivity() {
         showFragment(DirectoryFragment(), addToBackStack = true)
     }
 
-    fun showPlantsListFragment(categoryName: String) {
-        val fragment = PlantListFragment.newInstance(categoryName)
+    fun showPlantsListFragment(categoryName: String, plants: List<Plant>) {
+        val fragment = PlantListFragment.newInstance(categoryName, plants)
+        showFragment(fragment, addToBackStack = true)
+    }
+
+    fun showPlantDetailFragment(plant: Plant) {
+        val fragment = PlantDetailFragment.newInstance(plant)
         showFragment(fragment, addToBackStack = true)
     }
 }

@@ -15,13 +15,11 @@ class PlantAdapter(
     inner class PlantViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
         private val tvPlantName: TextView = itemView.findViewById(R.id.tvPlantName)
-        private val tvPlantScienceName: TextView = itemView.findViewById(R.id.tvScienceName)
-        private val imgArrow: ImageView = itemView.findViewById(R.id.imgArrow)
+        private val tvScientificName: TextView = itemView.findViewById(R.id.tvScientificName)
 
         fun bind(plant: Plant) {
-            imgPlant.setImageResource(plant.imageRes)
             tvPlantName.text = plant.name
-            tvPlantScienceName.text = plant.scienceName
+            tvScientificName.text = plant.scientificName
 
             itemView.setOnClickListener {
                 onItemClick(plant)
