@@ -8,5 +8,6 @@ import kotlinx.parcelize.Parcelize
 data class UserPlantWithDetails(
     @Embedded val plant: Plant,
     val customName: String?,
-    val customImage: String?
+    val customImage: String?,
+    val addedDate: Long? = null
 ) : Parcelable

@@ -3,6 +3,7 @@ package com.example.plantsandhabits
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 
 @Dao
 interface PlantDao {
@@ -32,12 +33,13 @@ interface PlantDao {
     @Insert
     suspend fun insertUserPlant(userPlant: UserPlant): Long
 
-    @Query("SELECT p.*, up.customName, up.customImage FROM plants p INNER JOIN user_plants up ON p.id = up.plantId")
-    suspend fun getUserPlants(): List<UserPlantWithDetails>
-
     @Query("DELETE FROM user_plants WHERE plantId = :plantId")
     suspend fun removeUserPlant(plantId: Int)
 
     @Query("SELECT COUNT(*) FROM user_plants WHERE plantId = :plantId")
     suspend fun isPlantInGarden(plantId: Int): Int
+
+    @Transaction
+    @Query("SELECT p.*, up.customName, up.customImage, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
+    suspend fun getUserPlantsWithDetails(): List<UserPlantWithDetails>
 }

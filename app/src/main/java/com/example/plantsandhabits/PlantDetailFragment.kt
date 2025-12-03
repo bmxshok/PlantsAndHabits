@@ -1,6 +1,7 @@
 package com.example.plantsandhabits
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +17,7 @@ import kotlinx.coroutines.withContext
 class PlantDetailFragment : Fragment() {
 
     private lateinit var plant: Plant
+    private lateinit var database: AppDatabase  // Будем получать БД через requireActivity()
 
     companion object {
         fun newInstance(plant: Plant): PlantDetailFragment {
@@ -30,6 +32,8 @@ class PlantDetailFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         plant = arguments?.getParcelable("plant") ?: getTestPlant()
+        database = (requireActivity() as DatabaseProvider).database  // Получаем БД
+        Log.d("PlantDetailFragment", "Opening plant: ${plant.name}, id: ${plant.id}")
     }
 
     override fun onCreateView(
@@ -45,10 +49,10 @@ class PlantDetailFragment : Fragment() {
 
         // Кнопка "Назад"
         view.findViewById<ImageView>(R.id.btnBack).setOnClickListener {
-            requireActivity().finish()
+            requireActivity().onBackPressed()
         }
 
-        // Получение данных о растении из аргументов
+        // Заполняем данными о растении
         setupPlantData(view)
 
         // Кнопка "Добавить в сад"
@@ -58,34 +62,71 @@ class PlantDetailFragment : Fragment() {
     }
 
     private fun setupPlantData(view: View) {
-        // Устанавливаем изображение
-        // val drawableId = ResourceHelper.getDrawableId(requireContext(), plant.imageResName)
-        // view.findViewById<ImageView>(R.id.imgPlant).setImageResource(drawableId)
-
         view.findViewById<TextView>(R.id.tvPlantNameDetail).text = plant.name
         view.findViewById<TextView>(R.id.tvScientificName).text = plant.scientificName
         view.findViewById<TextView>(R.id.tvDescription).text = plant.description
         view.findViewById<TextView>(R.id.tvCareTips).text = plant.careTips
+
+        Log.d("PlantDetailFragment", "Data setup for: ${plant.name}")
     }
+
+    /*private fun checkPlantStatus() {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val isInGarden = withContext(Dispatchers.IO) {
+                    database.plantDao().isPlantInGarden(plant.id) > 0
+                }
+
+                val button = view?.findViewById<Button>(R.id.btnAddToGarden)
+
+                Log.d("PlantDetailFragment", "Plant ${plant.name} in garden: $isInGarden")
+
+                if (isInGarden) {
+                    button?.text = "Уже в саду"
+                    button?.isEnabled = false
+                    // Можно сделать серый фон
+                    // button?.background = context?.getDrawable(R.drawable.bg_gray_rounded)
+                } else {
+                    button?.text = "Добавить в сад"
+                    button?.isEnabled = true
+                }
+            } catch (e: Exception) {
+                Log.e("PlantDetailFragment", "Error checking plant status", e)
+            }
+        }
+    }*/
 
     private fun addPlantToGarden() {
         CoroutineScope(Dispatchers.Main).launch {
-            val isAlreadyAdded = withContext(Dispatchers.IO) {
-                (requireActivity() as MainActivity).database.plantDao().isPlantInGarden(plant.id) > 0
-            }
-
-            if (isAlreadyAdded) {
-                showMessage("Это растение уже в вашем саду!")
-            } else {
-                withContext(Dispatchers.IO) {
-                    (requireActivity() as MainActivity).database.plantDao().insertUserPlant(
+            try {
+                // Добавляем растение в сад
+                val result = withContext(Dispatchers.IO) {
+                    database.plantDao().insertUserPlant(
                         UserPlant(plantId = plant.id)
                     )
                 }
-                showMessage("Растение добавлено в ваш сад!")
 
-                // Меняем текст кнопки
-                view?.findViewById<Button>(R.id.btnAddToGarden)?.text = "Уже в саду"
+                if (result > 0) {
+                    showMessage("Растение добавлено в ваш сад!")
+                    Log.d("PlantDetailFragment", "Plant added to garden, result id: $result")
+
+                    // Логируем все растения в саду для проверки
+                    val allUserPlants = withContext(Dispatchers.IO) {
+                        database.plantDao().getUserPlantsWithDetails()
+                    }
+                    Log.d("PlantDetailFragment", "Now have ${allUserPlants.size} plants in garden:")
+                    allUserPlants.forEach {
+                        Log.d("PlantDetailFragment", " - ${it.plant.name} (id: ${it.plant.id})")
+                    }
+
+                } else {
+                    showMessage("Ошибка при добавлении растения")
+                    Log.e("PlantDetailFragment", "Failed to add plant to garden")
+                }
+
+            } catch (e: Exception) {
+                showMessage("Ошибка: ${e.message}")
+                Log.e("PlantDetailFragment", "Error adding plant to garden", e)
             }
         }
     }

@@ -162,14 +162,14 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
 
-                // 3. Добавляем тестовое растение пользователю
+                /* 3. Добавляем тестовое растение пользователю
                 dao.insertUserPlant(
                     UserPlant(
                         plantId = 1,  // Диффенбахия
                         customName = "Моя любимая Диффка",
                         customImage = null
                     )
-                )
+                )*/
 
                 // 4. Логируем успех
                 withContext(Dispatchers.Main) {

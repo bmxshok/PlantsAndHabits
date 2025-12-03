@@ -68,9 +68,11 @@ class PlantListFragment : Fragment() {
     }
 
     private fun onPlantClick(plant: Plant) {
-        val intent = Intent(requireActivity(), NoMenuActivity::class.java)
-        intent.putExtra("plant", plant)
-        intent.putExtra("from_garden", true)
+        // Запускаем NoMenuActivity для деталей растения
+        val intent = Intent(requireActivity(), NoMenuActivity::class.java).apply {
+            putExtra("screen_type", "plant_detail")
+            putExtra("plant", plant)
+        }
         startActivity(intent)
     }
 }

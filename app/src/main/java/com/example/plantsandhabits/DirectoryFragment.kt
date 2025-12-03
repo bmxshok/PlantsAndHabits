@@ -14,9 +14,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class DirectoryFragment : Fragment() {
+
+    private lateinit var database: AppDatabase
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: CategoryAdapter
     private val categories = mutableListOf<Category>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        database = (requireActivity() as DatabaseProvider).database
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,7 +59,7 @@ class DirectoryFragment : Fragment() {
         CoroutineScope(Dispatchers.Main).launch {
             // Получаем категории из БД в фоновом потоке
             val categoriesList = withContext(Dispatchers.IO) {
-                (requireActivity() as MainActivity).database.plantDao().getAllCategories()
+                database.plantDao().getAllCategories()
             }
 
             // Обновляем UI в главном потоке
