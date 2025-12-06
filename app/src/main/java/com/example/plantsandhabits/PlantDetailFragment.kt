@@ -67,34 +67,26 @@ class PlantDetailFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvDescription).text = plant.description
         view.findViewById<TextView>(R.id.tvCareTips).text = plant.careTips
 
+        loadPlantImage(view)
         Log.d("PlantDetailFragment", "Data setup for: ${plant.name}")
     }
 
-    /*private fun checkPlantStatus() {
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val isInGarden = withContext(Dispatchers.IO) {
-                    database.plantDao().isPlantInGarden(plant.id) > 0
-                }
-
-                val button = view?.findViewById<Button>(R.id.btnAddToGarden)
-
-                Log.d("PlantDetailFragment", "Plant ${plant.name} in garden: $isInGarden")
-
-                if (isInGarden) {
-                    button?.text = "Уже в саду"
-                    button?.isEnabled = false
-                    // Можно сделать серый фон
-                    // button?.background = context?.getDrawable(R.drawable.bg_gray_rounded)
-                } else {
-                    button?.text = "Добавить в сад"
-                    button?.isEnabled = true
-                }
-            } catch (e: Exception) {
-                Log.e("PlantDetailFragment", "Error checking plant status", e)
+    private fun loadPlantImage(view: View) {
+        try {
+            val imageView = view.findViewById<ImageView>(R.id.imgPlant)
+            val drawableId = ResourceHelper.getDrawableId(requireContext(), plant.imageResName)
+            if(drawableId != 0) {
+                imageView.setImageResource(drawableId)
+                Log.d("PlantDetailFragment", "Loaded image: ${plant.imageResName}")
+            } else {
+                imageView.setImageResource(R.drawable.sample_category)
+                Log.w("PlantDetailFragment", "Image not found: ${plant.imageResName}, using default")
             }
+        } catch (e: Exception) {
+            Log.e("PlantDetailFragment", "Error loading plant image", e)
+            view.findViewById<ImageView>(R.id.imgPlant).setImageResource(R.drawable.sample_category)
         }
-    }*/
+    }
 
     private fun addPlantToGarden() {
         CoroutineScope(Dispatchers.Main).launch {

@@ -1,6 +1,7 @@
 package com.example.plantsandhabits
 
 import android.os.Bundle
+import  android.app.AlertDialog
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -60,6 +61,11 @@ class UserPlantDetailFragment : Fragment() {
             editUserPlant()
         }
 
+        // Кнопка "Удалить"
+        view.findViewById<Button>(R.id.btnDeletePlant).setOnClickListener {
+            showDeleteConfirmationDialog()
+        }
+
         // Кнопка "Добавить фото"
         view.findViewById<Button>(R.id.btnAddPhoto).setOnClickListener {
             addPhotoToPlant()
@@ -88,6 +94,50 @@ class UserPlantDetailFragment : Fragment() {
 
         // Загрузка фотографий (пока заглушка)
         loadGalleryPhotos()
+    }
+
+    private fun showDeleteConfirmationDialog() {
+        val plantName = userPlantWithDetails.customName ?: userPlantWithDetails.plant.name
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Удаление растения")
+            .setMessage("Вы уверены, что хотите удалить \"$plantName\" из своего сада?")
+            .setPositiveButton("Да, удалить") { dialog, _ ->
+                deleteUserPlant()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Отмена") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(true)
+            .show()
+    }
+
+    private fun deleteUserPlant() {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // Удаляем КОНКРЕТНОЕ растение по userPlantId
+                val deletedRows = withContext(Dispatchers.IO) {
+                    database.plantDao().removeUserPlantById(userPlantWithDetails.userPlantId)
+                }
+
+                if(deletedRows > 0) {
+                    showMessage("Растение удалено из вашего сада")
+                    Log.d("UserPlantDetail", "Deleted user plant with id: ${userPlantWithDetails.userPlantId}")
+
+                    // Закрываем экран и возвращаемся назад
+                    requireActivity().finish()
+
+                } else {
+                    showMessage("Не удалось удалить растение")
+                    Log.e("UserPlantDetail", "Failed to delete user plant")
+                }
+
+            } catch (e: Exception) {
+                showMessage("Ошибка при удалении: ${e.message}")
+                Log.e("UserPlantDetail", "Error deleting user plant", e)
+            }
+        }
     }
 
     private fun editUserPlant() {
@@ -135,6 +185,6 @@ class UserPlantDetailFragment : Fragment() {
             careTips = "Тестовые советы по уходу",
             imageResName = "sample_category"
         )
-        return UserPlantWithDetails(plant, "Мое растение", null)
+        return UserPlantWithDetails(plant, "Мое растение", null, System.currentTimeMillis(), 1)
     }
 }

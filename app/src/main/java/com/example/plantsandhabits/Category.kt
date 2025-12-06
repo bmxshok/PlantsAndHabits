@@ -11,5 +11,5 @@ data class Category(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val imageResName: String = "sample_category"
+    val imageResName: String
 ): Parcelable

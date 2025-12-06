@@ -1,5 +1,6 @@
 package com.example.plantsandhabits
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,7 +21,15 @@ class PlantAdapter(
         fun bind(plant: Plant) {
             tvPlantName.text = plant.name
             tvScientificName.text = plant.scientificName
-
+            try {
+                val drawableId = ResourceHelper.getDrawableId(
+                    itemView.context,
+                    plant.imageResName
+                )
+                imgPlant.setImageResource(drawableId)
+            } catch (e: Exception) {
+                imgPlant.setImageResource(R.drawable.sample_category)
+            }
             itemView.setOnClickListener {
                 onItemClick(plant)
             }

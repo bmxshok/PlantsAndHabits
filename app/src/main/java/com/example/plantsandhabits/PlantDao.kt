@@ -33,13 +33,16 @@ interface PlantDao {
     @Insert
     suspend fun insertUserPlant(userPlant: UserPlant): Long
 
-    @Query("DELETE FROM user_plants WHERE plantId = :plantId")
-    suspend fun removeUserPlant(plantId: Int)
+    @Query("DELETE FROM user_plants WHERE id = :userPlantId")
+    suspend fun removeUserPlantById(userPlantId: Long): Int
+
+    @Query("SELECT * FROM user_plants WHERE plantId = :plantId LIMIT 1")
+    suspend fun getUserPlantByPlantId(plantId: Int): UserPlant?
 
     @Query("SELECT COUNT(*) FROM user_plants WHERE plantId = :plantId")
     suspend fun isPlantInGarden(plantId: Int): Int
 
     @Transaction
-    @Query("SELECT p.*, up.customName, up.customImage, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
+    @Query("SELECT p.*, up.id as userPlantId, up.customName, up.customImage, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
     suspend fun getUserPlantsWithDetails(): List<UserPlantWithDetails>
 }

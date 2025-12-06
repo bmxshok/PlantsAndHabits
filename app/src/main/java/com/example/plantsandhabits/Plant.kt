@@ -26,5 +26,5 @@ data class Plant(
     val scientificName: String?,
     val description: String = "",
     val careTips: String = "",
-    val imageResName: String = "sample_category"
+    val imageResName: String
 ) : Parcelable

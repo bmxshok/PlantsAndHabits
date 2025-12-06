@@ -18,11 +18,18 @@ class UserPlantAdapter(
         private val tvPlantDescription: TextView = itemView.findViewById(R.id.tvScientificName)
 
         fun bind(userPlant: UserPlantWithDetails) {
-            // Используем кастомное название если есть
             val displayName = userPlant.customName ?: userPlant.plant.name
             tvPlantName.text = displayName
             tvPlantDescription.text = userPlant.plant.scientificName
-
+            try {
+                val drawableId = ResourceHelper.getDrawableId(
+                    itemView.context,
+                    userPlant.plant.imageResName
+                )
+                imgPlant.setImageResource(drawableId)
+            } catch (e: Exception) {
+                imgPlant.setImageResource(R.drawable.sample_category)
+            }
             // Можно показать дату добавления
             // tvPlantDescription.text = "Добавлено: ${formatDate(userPlant.addedDate)}"
 

@@ -1,5 +1,6 @@
 package com.example.plantsandhabits
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,9 +19,16 @@ class CategoryAdapter(
         private val imgArrow: ImageView = itemView.findViewById(R.id.imgArrow)
 
         fun bind(category: Category) {
-            ///обработка текстового имени изображения
             tvCategoryName.text = category.name
-
+            try {
+                val drawableId = ResourceHelper.getDrawableId(
+                    itemView.context,
+                    category.imageResName
+                )
+                imgCategory.setImageResource(drawableId)
+            } catch (e: Exception) {
+                imgCategory.setImageResource(R.drawable.sample_category)
+            }
             itemView.setOnClickListener {
                 onItemClick(category)
             }
