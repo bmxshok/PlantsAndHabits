@@ -33,6 +33,14 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
             "add_plant_form" -> {
                 showAddPlantFormFragment()
             }
+            "edit_plant_form" -> {
+                val userPlant = intent.getParcelableExtra<UserPlantWithDetails>("user_plant")
+                if(userPlant != null) {
+                    showEditPlantFormFragment(userPlant)
+                } else {
+                    finish()
+                }
+            }
             else -> finish()
         }
     }
@@ -52,6 +60,12 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
     private fun showAddPlantFormFragment() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, AddPlantFormFragment())
+            .commit()
+    }
+
+    private fun showEditPlantFormFragment(userPlant: UserPlantWithDetails) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, EditPlantFragment.newInstance(userPlant))
             .commit()
     }
 }

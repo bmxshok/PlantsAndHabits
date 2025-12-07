@@ -36,6 +36,9 @@ interface PlantDao {
     @Insert
     suspend fun insertUserPlant(userPlant: UserPlant): Long
 
+    @Query("UPDATE user_plants SET customName = :customName, customImage = :customImage WHERE id = :userPlantId")
+    suspend fun updateUserPlant(userPlantId: Long, customName: String?, customImage: String?): Int
+
     @Query("DELETE FROM user_plants WHERE id = :userPlantId")
     suspend fun removeUserPlantById(userPlantId: Long): Int
 

@@ -2,6 +2,7 @@ package com.example.plantsandhabits
 
 import android.os.Bundle
 import  android.app.AlertDialog
+import android.content.Intent
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -77,6 +78,31 @@ class UserPlantDetailFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Обновляем данные после возврата из экрана редактирования
+        refreshPlantData()
+    }
+
+    private fun refreshPlantData() {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // Загружаем обновленные данные из БД
+                val updatedPlant = withContext(Dispatchers.IO) {
+                    database.plantDao().getUserPlantsWithDetails()
+                        .find { it.userPlantId == userPlantWithDetails.userPlantId }
+                }
+
+                if (updatedPlant != null) {
+                    userPlantWithDetails = updatedPlant
+                    view?.let { setupPlantData(it) }
+                }
+            } catch (e: Exception) {
+                Log.e("UserPlantDetail", "Error refreshing plant data", e)
+            }
+        }
+    }
+
     private fun setupPlantData(view: View) {
         val plant = userPlantWithDetails.plant
 
@@ -88,12 +114,53 @@ class UserPlantDetailFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvDescription).text = plant.description
         view.findViewById<TextView>(R.id.tvCareTips).text = plant.careTips
 
-        // Можно показать дату добавления
-        //val addedDate = userPlantWithDetails.addedDate
-        //Log.d("UserPlantDetail", "Plant added on: $addedDate")
+        // Загружаем изображение растения
+        loadPlantImage(view)
 
         // Загрузка фотографий (пока заглушка)
         loadGalleryPhotos()
+    }
+
+    private fun loadPlantImage(view: View) {
+        val imageView = view.findViewById<ImageView>(R.id.imgPlant)
+        
+        try {
+            // Сначала пытаемся загрузить кастомное изображение
+            if (!userPlantWithDetails.customImage.isNullOrEmpty()) {
+                val imageFile = java.io.File(userPlantWithDetails.customImage)
+                if (imageFile.exists()) {
+                    val bitmap = android.graphics.BitmapFactory.decodeFile(imageFile.absolutePath)
+                    imageView.setImageBitmap(bitmap)
+                    Log.d("UserPlantDetail", "Loaded custom image from: ${userPlantWithDetails.customImage}")
+                    return
+                } else {
+                    Log.w("UserPlantDetail", "Custom image file not found: ${userPlantWithDetails.customImage}")
+                }
+            }
+            
+            // Если кастомного изображения нет, загружаем стандартное
+            loadDefaultImage(view, userPlantWithDetails.plant.imageResName)
+        } catch (e: Exception) {
+            Log.e("UserPlantDetail", "Error loading plant image", e)
+            imageView.setImageResource(R.drawable.sample_category)
+        }
+    }
+
+    private fun loadDefaultImage(view: View, imageResName: String) {
+        val imageView = view.findViewById<ImageView>(R.id.imgPlant)
+        try {
+            val drawableId = ResourceHelper.getDrawableId(requireContext(), imageResName)
+            if (drawableId != 0) {
+                imageView.setImageResource(drawableId)
+                Log.d("UserPlantDetail", "Loaded default image: $imageResName")
+            } else {
+                imageView.setImageResource(R.drawable.sample_category)
+                Log.w("UserPlantDetail", "Image not found: $imageResName, using default")
+            }
+        } catch (e: Exception) {
+            Log.e("UserPlantDetail", "Error loading default image", e)
+            imageView.setImageResource(R.drawable.sample_category)
+        }
     }
 
     private fun showDeleteConfirmationDialog() {
@@ -141,9 +208,11 @@ class UserPlantDetailFragment : Fragment() {
     }
 
     private fun editUserPlant() {
-        // Здесь будет логика редактирования (изменение названия, фото и т.д.)
-        showMessage("Редактирование растения (в разработке)")
-        Log.d("UserPlantDetail", "Edit plant: ${userPlantWithDetails.plant.name}")
+        val intent = Intent(requireActivity(), NoMenuActivity::class.java).apply {
+            putExtra("screen_type", "edit_plant_form")
+            putExtra("user_plant", userPlantWithDetails)
+        }
+        startActivity(intent)
     }
 
     private fun addPhotoToPlant() {
