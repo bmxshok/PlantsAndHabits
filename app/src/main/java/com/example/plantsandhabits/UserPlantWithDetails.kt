@@ -9,6 +9,7 @@ data class UserPlantWithDetails(
     @Embedded val plant: Plant,
     val customName: String?,
     val customImage: String?,
+    val plantType: String?,
     val addedDate: Long? = null,
     val userPlantId: Long
 ) : Parcelable
