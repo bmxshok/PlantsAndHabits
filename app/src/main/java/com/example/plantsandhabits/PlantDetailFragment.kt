@@ -102,14 +102,8 @@ class PlantDetailFragment : Fragment() {
                     showMessage("Растение добавлено в ваш сад!")
                     Log.d("PlantDetailFragment", "Plant added to garden, result id: $result")
 
-                    // Логируем все растения в саду для проверки
-                    val allUserPlants = withContext(Dispatchers.IO) {
-                        database.plantDao().getUserPlantsWithDetails()
-                    }
-                    Log.d("PlantDetailFragment", "Now have ${allUserPlants.size} plants in garden:")
-                    allUserPlants.forEach {
-                        Log.d("PlantDetailFragment", " - ${it.plant.name} (id: ${it.plant.id})")
-                    }
+                    // Перенаправляем на экран "Мой сад"
+                    navigateToMyGarden()
 
                 } else {
                     showMessage("Ошибка при добавлении растения")
@@ -121,6 +115,17 @@ class PlantDetailFragment : Fragment() {
                 Log.e("PlantDetailFragment", "Error adding plant to garden", e)
             }
         }
+    }
+
+    private fun navigateToMyGarden() {
+        // Закрываем текущую Activity и возвращаемся в MainActivity
+        // MainActivity автоматически покажет MyPlantsFragment при нажатии на кнопку "Мой сад"
+        val intent = android.content.Intent(requireContext(), MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra("show_my_garden", true)
+        }
+        startActivity(intent)
+        requireActivity().finish()
     }
 
     private fun showMessage(message: String) {

@@ -22,7 +22,12 @@ class MainActivity : AppCompatActivity(), DatabaseProvider {
         setContentView(R.layout.activity_main)
 
         if (savedInstanceState == null) {
-            showFragment(HomeFragment(), addToBackStack = false)
+            // Проверяем, нужно ли показать экран "Мой сад"
+            if (intent.getBooleanExtra("show_my_garden", false)) {
+                showFragment(MyPlantsFragment(), addToBackStack = false)
+            } else {
+                showFragment(HomeFragment(), addToBackStack = false)
+            }
         }
         debugUserPlants()
         setupBottomNavigation()
