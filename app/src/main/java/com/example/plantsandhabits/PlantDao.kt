@@ -20,14 +20,17 @@ interface PlantDao {
     @Insert
     suspend fun insertPlant(plant: Plant): Long
 
-    @Query("SELECT * FROM plants WHERE categoryId = :categoryId ORDER BY name")
+    @Query("SELECT * FROM plants WHERE categoryId = :categoryId AND name != '_MANUAL_PLACEHOLDER_' ORDER BY name")
     suspend fun getPlantsByCategory(categoryId: Int): List<Plant>
 
     @Query("SELECT * FROM plants WHERE id = :plantId")
     suspend fun getPlantById(plantId: Int): Plant?
 
-    @Query("SELECT * FROM plants")
+    @Query("SELECT * FROM plants WHERE name != '_MANUAL_PLACEHOLDER_'")
     suspend fun getAllPlants(): List<Plant>
+
+    @Query("SELECT * FROM plants WHERE name = '_MANUAL_PLACEHOLDER_' LIMIT 1")
+    suspend fun getManualPlantPlaceholder(): Plant?
 
     // Растения пользователя
     @Insert
@@ -43,6 +46,6 @@ interface PlantDao {
     suspend fun isPlantInGarden(plantId: Int): Int
 
     @Transaction
-    @Query("SELECT p.*, up.id as userPlantId, up.customName, up.customImage, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
+    @Query("SELECT p.*, up.id as userPlantId, up.customName, up.customImage, up.plantType, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
     suspend fun getUserPlantsWithDetails(): List<UserPlantWithDetails>
 }

@@ -185,6 +185,6 @@ class UserPlantDetailFragment : Fragment() {
             careTips = "Тестовые советы по уходу",
             imageResName = "sample_category"
         )
-        return UserPlantWithDetails(plant, "Мое растение", null, System.currentTimeMillis(), 1)
+        return UserPlantWithDetails(plant, "Мое растение", null, "Тестовый тип", System.currentTimeMillis(), 1)
     }
 }

@@ -30,6 +30,9 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
                     finish()
                 }
             }
+            "add_plant_form" -> {
+                showAddPlantFormFragment()
+            }
             else -> finish()
         }
     }
@@ -43,6 +46,12 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
     private fun showUserPlantDetailFragment(userPlant: UserPlantWithDetails) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, UserPlantDetailFragment.newInstance(userPlant))
+            .commit()
+    }
+
+    private fun showAddPlantFormFragment() {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, AddPlantFormFragment())
             .commit()
     }
 }

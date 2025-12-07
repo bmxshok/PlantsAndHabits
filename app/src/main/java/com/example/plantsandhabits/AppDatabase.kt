@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +13,7 @@ import kotlinx.coroutines.withContext
 
 @Database(
     entities = [Category::class, Plant::class, UserPlant::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,10 +30,17 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "plants_database"
                 )
+                    .addMigrations(MIGRATION_1_2)
                     .addCallback(AppDatabaseCallback(context))
                     .build()
                 INSTANCE = instance
                 instance
+            }
+        }
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE user_plants ADD COLUMN plantType TEXT")
             }
         }
 
@@ -72,6 +80,18 @@ abstract class AppDatabase : RoomDatabase() {
                 val fernCategoryId = dao.insertCategory(
                     Category(name = "Папоротники", imageResName = "ic_fern")
                 ).toInt()
+
+                // 1.5. Создаем фиктивный Plant для ручных растений (используем первую категорию, но это не важно)
+                dao.insertPlant(
+                    Plant(
+                        categoryId = floweringCategoryId,
+                        name = "_MANUAL_PLACEHOLDER_",
+                        scientificName = null,
+                        description = "",
+                        careTips = "",
+                        imageResName = "sample_category"
+                    )
+                )
 
                 // 2. Вставляем растения
                 // Комнатные растения

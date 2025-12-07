@@ -1,9 +1,11 @@
 package com.example.plantsandhabits
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -41,6 +43,11 @@ class DirectoryFragment : Fragment() {
             requireActivity().onBackPressed()
         }
 
+        // Настройка кнопки "Добавить растение вручную"
+        view.findViewById<Button>(R.id.btnAddPlant).setOnClickListener {
+            openAddPlantForm()
+        }
+
         // Настройка RecyclerView
         recyclerView = view.findViewById(R.id.rvCategories)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -53,6 +60,13 @@ class DirectoryFragment : Fragment() {
 
         // Загрузка категорий из БД
         loadCategories()
+    }
+
+    private fun openAddPlantForm() {
+        val intent = Intent(requireActivity(), NoMenuActivity::class.java).apply {
+            putExtra("screen_type", "add_plant_form")
+        }
+        startActivity(intent)
     }
 
     private fun loadCategories() {

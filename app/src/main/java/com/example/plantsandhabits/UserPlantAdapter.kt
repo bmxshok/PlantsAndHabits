@@ -20,21 +20,46 @@ class UserPlantAdapter(
         fun bind(userPlant: UserPlantWithDetails) {
             val displayName = userPlant.customName ?: userPlant.plant.name
             tvPlantName.text = displayName
-            tvPlantDescription.text = userPlant.plant.scientificName
+            // Показываем тип растения вместо латинского названия
+            tvPlantDescription.text = userPlant.plantType ?: userPlant.plant.scientificName ?: ""
+            
+            // Загружаем изображение: сначала пытаемся загрузить кастомное, затем стандартное
             try {
-                val drawableId = ResourceHelper.getDrawableId(
-                    itemView.context,
-                    userPlant.plant.imageResName
-                )
-                imgPlant.setImageResource(drawableId)
+                if (!userPlant.customImage.isNullOrEmpty()) {
+                    // Загружаем кастомное изображение из файла
+                    val imageFile = java.io.File(userPlant.customImage)
+                    if (imageFile.exists()) {
+                        val bitmap = android.graphics.BitmapFactory.decodeFile(imageFile.absolutePath)
+                        imgPlant.setImageBitmap(bitmap)
+                    } else {
+                        // Если файл не найден, используем стандартное изображение
+                        loadDefaultImage(userPlant.plant.imageResName)
+                    }
+                } else {
+                    loadDefaultImage(userPlant.plant.imageResName)
+                }
             } catch (e: Exception) {
                 imgPlant.setImageResource(R.drawable.sample_category)
             }
-            // Можно показать дату добавления
-            // tvPlantDescription.text = "Добавлено: ${formatDate(userPlant.addedDate)}"
 
             itemView.setOnClickListener {
                 onItemClick(userPlant)
+            }
+        }
+
+        private fun loadDefaultImage(imageResName: String) {
+            try {
+                val drawableId = ResourceHelper.getDrawableId(
+                    itemView.context,
+                    imageResName
+                )
+                if (drawableId != 0) {
+                    imgPlant.setImageResource(drawableId)
+                } else {
+                    imgPlant.setImageResource(R.drawable.sample_category)
+                }
+            } catch (e: Exception) {
+                imgPlant.setImageResource(R.drawable.sample_category)
             }
         }
     }

@@ -21,5 +21,6 @@ data class UserPlant(
     val plantId: Int,
     val customName: String? = null,
     val customImage: String? = null,
+    val plantType: String? = null,
     val addedDate: Long = System.currentTimeMillis()
 )
