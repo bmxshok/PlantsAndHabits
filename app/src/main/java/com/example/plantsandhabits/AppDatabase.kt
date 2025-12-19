@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Database(
-    entities = [Category::class, Plant::class, UserPlant::class],
-    version = 2,
+    entities = [Category::class, Plant::class, UserPlant::class, Reminder::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,7 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "plants_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(AppDatabaseCallback(context))
                     .build()
                 INSTANCE = instance
@@ -41,6 +41,26 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE user_plants ADD COLUMN plantType TEXT")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS reminders(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userPlantId INTEGER NOT NULL,
+                        workType TEXT NOT NULL,
+                        periodValue INTEGER NOT NULL,
+                        periodUnit TEXT NOT NULL,
+                        hour INTEGER NOT NULL,
+                        minute INTEGER NOT NULL,
+                        nextTriggerAt INTEGER NOT NULL,
+                        FOREIGN KEY(userPlantId) REFERENCES user_plants(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
             }
         }
 
@@ -55,6 +75,8 @@ abstract class AppDatabase : RoomDatabase() {
                     populateDatabase()
                 }
             }
+
+
 
             private suspend fun populateDatabase() {
                 val database = getDatabase(context)
@@ -95,7 +117,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // 2. Вставляем растения
                 // Комнатные растения
-                dao.insertPlant(
+                val diffenbachiaId = dao.insertPlant(
                     Plant(
                         categoryId = floweringCategoryId,
                         name = "Диффенбахия",
@@ -104,7 +126,7 @@ abstract class AppDatabase : RoomDatabase() {
                         careTips = "• Освещение: Яркий рассеянный свет\n• Полив: Умеренный, летом 2-3 раза в неделю\n• Температура: 18-25°C\n• Влажность: Высокая, рекомендуется опрыскивание",
                         imageResName = "ic_leaf"
                     )
-                )
+                ).toInt()
 
                 dao.insertPlant(
                     Plant(
@@ -175,7 +197,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
 
                 // Орхидеи
-                dao.insertPlant(
+                val orchidId = dao.insertPlant(
                     Plant(
                         categoryId = edibleCategoryId,
                         name = "Фаленопсис",
@@ -184,22 +206,8 @@ abstract class AppDatabase : RoomDatabase() {
                         careTips = "• Освещение: Яркий рассеянный свет\n• Полив: Методом погружения\n• Субстрат: Кора, не обычная земля\n• Цветение: После периода покоя",
                         imageResName = "ic_leafy"
                     )
-                )
+                ).toInt()
 
-                /* 3. Добавляем тестовое растение пользователю
-                dao.insertUserPlant(
-                    UserPlant(
-                        plantId = 1,  // Диффенбахия
-                        customName = "Моя любимая Диффка",
-                        customImage = null
-                    )
-                )*/
-
-                // 4. Логируем успех
-                withContext(Dispatchers.Main) {
-                    android.util.Log.d("AppDatabase", "Database populated with test data")
-                }
-            }
-        }
+            }    }
     }
 }
