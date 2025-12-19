@@ -51,4 +51,42 @@ interface PlantDao {
     @Transaction
     @Query("SELECT p.*, up.id as userPlantId, up.customName, up.customImage, up.plantType, up.addedDate FROM plants p INNER JOIN user_plants up ON p.id = up.plantId ORDER BY up.addedDate DESC")
     suspend fun getUserPlantsWithDetails(): List<UserPlantWithDetails>
+
+    // Напоминания
+    @Insert
+    suspend fun insertReminder(reminder: Reminder): Long
+
+    @Query("DELETE FROM reminders WHERE id = :reminderId")
+    suspend fun deleteReminderById(reminderId: Int): Int
+
+    @Query("UPDATE reminders SET nextTriggerAt = :nextTriggerAt WHERE id = :reminderId")
+    suspend fun updateReminderNextTrigger(reminderId: Int, nextTriggerAt: Long): Int
+
+    @Query("SELECT * FROM reminders WHERE id = :reminderId")
+    suspend fun getReminderById(reminderId: Int): Reminder?
+
+    @Query(
+        """
+        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt,
+               p.name AS plantName, up.customName AS customName, up.plantType AS plantType
+        FROM reminders r
+        INNER JOIN user_plants up ON r.userPlantId = up.id
+        INNER JOIN plants p ON up.plantId = p.id
+        ORDER BY r.nextTriggerAt ASC
+        """
+    )
+    suspend fun getRemindersWithDetails(): List<ReminderWithDetails>
+
+    @Query(
+        """
+        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt,
+               p.name AS plantName, up.customName AS customName, up.plantType AS plantType
+        FROM reminders r
+        INNER JOIN user_plants up ON r.userPlantId = up.id
+        INNER JOIN plants p ON up.plantId = p.id
+        WHERE r.nextTriggerAt >= :startOfDay AND r.nextTriggerAt < :endOfDay
+        ORDER BY r.hour, r.minute
+        """
+    )
+    suspend fun getRemindersForDate(startOfDay: Long, endOfDay: Long): List<ReminderWithDetails>
 }
