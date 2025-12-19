@@ -8,64 +8,86 @@
     android:background="@color/white">
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
         android:text="Мой сад"
-        android:textSize="24sp"
         android:textColor="@color/dark_green"
-        android:textStyle="bold"
-        android:layout_marginBottom="24dp" />
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginBottom="24dp"
-        android:gravity="center"
+        android:layout_gravity="center"
         android:background="@drawable/bg_tab_selector"
-        android:padding="4dp">
+        android:padding="2dp">
 
         <Button
             android:id="@+id/btnPlants"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Растения"
-            android:textColor="@color/dark_green"
-            android:background="@drawable/bg_tab_selected"
             style="@style/NoTintButton"
-            android:textAllCaps="false" />
+            android:layout_width="116dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_tab_selected"
+            android:minHeight="32dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:text="Растения"
+            android:textAllCaps="false"
+            android:textColor="@color/dark_green"
+            android:textSize="14sp" />
 
         <Button
             android:id="@+id/btnReminders"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Напоминания"
-            android:textColor="@color/dark_green"
-            android:background="@drawable/bg_tab_unselected"
             style="@style/NoTintButton"
-            android:textAllCaps="false" />
+            android:layout_width="145dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_tab_unselected"
+            android:minHeight="32dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:text="Напоминания"
+            android:textAllCaps="false"
+            android:textColor="@color/dark_green"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
     <Button
-        android:id="@+id/btnGoToDirectory"
+        android:id="@+id/btnAddAction"
+        style="@style/NoTintButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Добавить растение"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/bg_green_rounded"
+        android:text="Добавить растение"
         android:textColor="@color/dark_green"
-        style="@style/NoTintButton"
-        android:layout_marginBottom="16dp" />
+        android:textSize="18sp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvPlants"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:scrollbars="vertical" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPlants"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:scrollbars="vertical" />
+
+        <FrameLayout
+            android:id="@+id/containerContent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>

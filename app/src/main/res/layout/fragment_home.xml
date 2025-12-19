@@ -10,19 +10,19 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Главная страница"
+        android:text="Напоминания на сегодня"
         android:textSize="24sp"
         android:textColor="@color/dark_green"
         android:textStyle="bold"
         android:layout_marginBottom="24dp" />
 
-    <!-- Приветствие -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Добро пожаловать в приложение!"
-        android:textSize="16sp"
-        android:textColor="@color/black"
-        android:layout_marginBottom="32dp" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTodayReminders"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:scrollbars="vertical" />
 
 </LinearLayout>
