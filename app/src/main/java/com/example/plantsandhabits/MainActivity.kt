@@ -3,6 +3,7 @@ package com.example.plantsandhabits
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
@@ -19,32 +20,96 @@ class MainActivity : AppCompatActivity(), DatabaseProvider {
     override val database by lazy { AppDatabase.getDatabase(this) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+        
+        // Создаем канал уведомлений
+        NotificationHelper.createNotificationChannel(this)
+        
+        // Перепланируем все напоминания при запуске
+        ReminderManager.rescheduleAllReminders(this)
 
+        val btnHome = findViewById<ImageView>(R.id.btnHome)
+        val btnCalendar = findViewById<ImageView>(R.id.btnCalendar)
+        val btnPlants = findViewById<ImageView>(R.id.btnPlants)
+        
         if (savedInstanceState == null) {
             // Проверяем, нужно ли показать экран "Мой сад"
             if (intent.getBooleanExtra("show_my_garden", false)) {
                 showFragment(MyPlantsFragment(), addToBackStack = false)
+                setButtonSelected(btnPlants)
             } else {
                 showFragment(HomeFragment(), addToBackStack = false)
+                setButtonSelected(btnHome)
+            }
+        } else {
+            // Восстанавливаем состояние кнопки на основе текущего фрагмента
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            when (currentFragment) {
+                is HomeFragment -> setButtonSelected(btnHome)
+                is CalendarFragment -> setButtonSelected(btnCalendar)
+                is MyPlantsFragment -> setButtonSelected(btnPlants)
+                else -> setButtonSelected(btnHome)
             }
         }
-        debugUserPlants()
+        
         setupBottomNavigation()
+        debugUserPlants()
     }
 
+    private var currentSelectedButton: ImageView? = null
+
     private fun setupBottomNavigation() {
-        findViewById<ImageView>(R.id.btnHome).setOnClickListener {
+        val btnHome = findViewById<ImageView>(R.id.btnHome)
+        val btnCalendar = findViewById<ImageView>(R.id.btnCalendar)
+        val btnPlants = findViewById<ImageView>(R.id.btnPlants)
+
+        btnHome.setOnClickListener {
+            setButtonSelected(btnHome)
             showFragment(HomeFragment(), addToBackStack = false)
         }
 
-        findViewById<ImageView>(R.id.btnCalendar).setOnClickListener {
+        btnCalendar.setOnClickListener {
+            setButtonSelected(btnCalendar)
             showFragment(CalendarFragment(), addToBackStack = false)
         }
 
-        findViewById<ImageView>(R.id.btnPlants).setOnClickListener {
+        btnPlants.setOnClickListener {
+            setButtonSelected(btnPlants)
             showFragment(MyPlantsFragment(), addToBackStack = false)
         }
+    }
+
+    private fun setButtonSelected(button: ImageView) {
+        // Сбрасываем предыдущую кнопку
+        currentSelectedButton?.let {
+            it.isSelected = false
+            it.alpha = 1.0f
+            it.setColorFilter(null)
+            // Скрываем круг предыдущей кнопки
+            val prevContainer = it.parent as? android.view.ViewGroup
+            prevContainer?.findViewById<View>(when (it.id) {
+                R.id.btnHome -> R.id.circleHome
+                R.id.btnCalendar -> R.id.circleCalendar
+                R.id.btnPlants -> R.id.circlePlants
+                else -> 0
+            })?.visibility = View.GONE
+        }
+
+        // Устанавливаем новую выбранную кнопку
+        button.isSelected = true
+        button.alpha = 1.0f
+        // Делаем иконку белой
+        button.setColorFilter(resources.getColor(android.R.color.white, null))
+        // Показываем круг для выбранной кнопки
+        val container = button.parent as? android.view.ViewGroup
+        container?.findViewById<View>(when (button.id) {
+            R.id.btnHome -> R.id.circleHome
+            R.id.btnCalendar -> R.id.circleCalendar
+            R.id.btnPlants -> R.id.circlePlants
+            else -> 0
+        })?.visibility = View.VISIBLE
+        currentSelectedButton = button
     }
 
     private fun showFragment(fragment: Fragment, addToBackStack: Boolean = true) {
@@ -65,6 +130,10 @@ class MainActivity : AppCompatActivity(), DatabaseProvider {
     fun showPlantsListFragment(categoryName: String, plants: List<Plant>) {
         val fragment = PlantListFragment.newInstance(categoryName, plants)
         showFragment(fragment, addToBackStack = true)
+    }
+
+    fun showRemindersFragment() {
+        showFragment(RemindersFragment(), addToBackStack = true)
     }
 
     fun debugUserPlants() {
