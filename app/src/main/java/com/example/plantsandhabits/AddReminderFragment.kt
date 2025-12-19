@@ -1,0 +1,228 @@
+package com.example.plantsandhabits
+
+import android.app.TimePickerDialog
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Calendar
+
+class AddReminderFragment : Fragment() {
+
+    private lateinit var database: AppDatabase
+
+    private lateinit var plantSpinner: Spinner
+    private lateinit var workSpinner: Spinner
+    private lateinit var tvPeriodSummary: TextView
+    private lateinit var tvTimeSummary: TextView
+    private lateinit var btnBack: ImageView
+
+    private val workTypes = listOf("Полив", "Пересадка", "Удобрение")
+    private val periodUnits = listOf("день", "неделя", "месяц")
+    private val periodUnitCodes = listOf("days", "weeks", "months")
+
+    private var userPlants: List<UserPlantWithDetails> = emptyList()
+    
+    // Текущие значения
+    private var periodValue: Int = 7
+    private var periodUnitIndex: Int = 0
+    private var selectedHour: Int = 9
+    private var selectedMinute: Int = 30
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_add_reminder, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Добавляем отступы для статус-бара
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, v.paddingTop + systemBars.top, v.paddingRight, v.paddingBottom)
+            insets
+        }
+
+        database = (requireActivity() as DatabaseProvider).database
+
+        plantSpinner = view.findViewById(R.id.spinnerPlant)
+        workSpinner = view.findViewById(R.id.spinnerWork)
+        tvPeriodSummary = view.findViewById(R.id.tvPeriodSummary)
+        tvTimeSummary = view.findViewById(R.id.tvTimeSummary)
+        btnBack = view.findViewById(R.id.btnBack)
+
+        setupWorkSpinner()
+        loadPlants()
+        updatePeriodSummary()
+        updateTimeSummary()
+
+        btnBack.setOnClickListener { requireActivity().onBackPressed() }
+        view.findViewById<Button>(R.id.btnSaveReminder).setOnClickListener { saveReminder() }
+        
+        // Обработчики кликов для выбора периодичности и времени
+        tvPeriodSummary.setOnClickListener { showPeriodDialog() }
+        tvTimeSummary.setOnClickListener { showTimeDialog() }
+    }
+
+    private fun loadPlants() {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                userPlants = withContext(Dispatchers.IO) {
+                    database.plantDao().getUserPlantsWithDetails()
+                }
+                if (userPlants.isEmpty()) {
+                    Toast.makeText(requireContext(), "Сначала добавьте растения в сад", Toast.LENGTH_SHORT).show()
+                    requireActivity().onBackPressed()
+                    return@launch
+                }
+                val names = userPlants.map {
+                    it.customName ?: it.plant.name
+                }
+                plantSpinner.adapter = ArrayAdapter(
+                    requireContext(),
+                    R.layout.spinner_item,
+                    names
+                ).also { adapter ->
+                    adapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Ошибка загрузки растений: ${e.message}", Toast.LENGTH_SHORT).show()
+                requireActivity().onBackPressed()
+            }
+        }
+    }
+
+    private fun setupWorkSpinner() {
+        workSpinner.adapter = ArrayAdapter(
+            requireContext(),
+            R.layout.spinner_item,
+            workTypes
+        ).also { adapter ->
+            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        }
+    }
+
+    private fun showPeriodDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_period_picker, null)
+        val npValue = dialogView.findViewById<NumberPicker>(R.id.npPeriodValue)
+        val npUnit = dialogView.findViewById<NumberPicker>(R.id.npPeriodUnit)
+
+        npValue.minValue = 1
+        npValue.maxValue = 30
+        npValue.value = periodValue
+
+        npUnit.minValue = 0
+        npUnit.maxValue = periodUnits.size - 1
+        npUnit.displayedValues = periodUnits.toTypedArray()
+        npUnit.value = periodUnitIndex
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Периодичность")
+            .setView(dialogView)
+            .setPositiveButton("OK") { _, _ ->
+                periodValue = npValue.value
+                periodUnitIndex = npUnit.value
+                updatePeriodSummary()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun showTimeDialog() {
+        val timePickerDialog = TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                selectedHour = hourOfDay
+                selectedMinute = minute
+                updateTimeSummary()
+            },
+            selectedHour,
+            selectedMinute,
+            true
+        )
+        timePickerDialog.show()
+    }
+
+    private fun updatePeriodSummary() {
+        val unitWord = when (periodUnitIndex) {
+            0 -> if (periodValue == 1) "день" else "дней"
+            1 -> if (periodValue == 1) "неделю" else "недель"
+            else -> if (periodValue == 1) "месяц" else "месяцев"
+        }
+        tvPeriodSummary.text = "Раз в $periodValue $unitWord"
+    }
+
+    private fun updateTimeSummary() {
+        tvTimeSummary.text = String.format("%02d:%02d", selectedHour, selectedMinute)
+    }
+
+    private fun saveReminder() {
+        if (userPlants.isEmpty()) return
+
+        val plantIndex = plantSpinner.selectedItemPosition
+        if (plantIndex !in userPlants.indices) {
+            Toast.makeText(requireContext(), "Выберите растение", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val userPlant = userPlants[plantIndex]
+        val workType = workTypes[workSpinner.selectedItemPosition]
+        val periodUnitCode = periodUnitCodes[periodUnitIndex]
+
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, selectedHour)
+            set(Calendar.MINUTE, selectedMinute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            when (periodUnitCode) {
+                "days" -> add(Calendar.DAY_OF_MONTH, periodValue)
+                "weeks" -> add(Calendar.WEEK_OF_YEAR, periodValue)
+                "months" -> add(Calendar.MONTH, periodValue)
+            }
+        }
+        val nextTriggerAt = cal.timeInMillis
+
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val reminderId = withContext(Dispatchers.IO) {
+                    database.plantDao().insertReminder(
+                        Reminder(
+                            userPlantId = userPlant.userPlantId.toInt(),
+                            workType = workType,
+                            periodValue = periodValue,
+                            periodUnit = periodUnitCode,
+                            hour = selectedHour,
+                            minute = selectedMinute,
+                            nextTriggerAt = nextTriggerAt
+                        )
+                    )
+                }
+                
+                // Получаем созданное напоминание и планируем уведомление
+                withContext(Dispatchers.IO) {
+                    val reminder = database.plantDao().getReminderById(reminderId.toInt())
+                    if (reminder != null) {
+                        ReminderScheduler.scheduleReminder(requireContext(), reminder)
+                    }
+                }
+                
+                Toast.makeText(requireContext(), "Напоминание сохранено", Toast.LENGTH_SHORT).show()
+                requireActivity().onBackPressed()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
