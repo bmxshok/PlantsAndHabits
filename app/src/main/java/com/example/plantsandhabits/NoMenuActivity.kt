@@ -2,12 +2,16 @@ package com.example.plantsandhabits
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
     override val database by lazy { AppDatabase.getDatabase(this) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_no_menu)
 
         // Получаем растение из Intent
@@ -41,6 +45,9 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
                     finish()
                 }
             }
+            "add_reminder" -> {
+                showAddReminderFragment()
+            }
             else -> finish()
         }
     }
@@ -66,6 +73,12 @@ class NoMenuActivity : AppCompatActivity(), DatabaseProvider {
     private fun showEditPlantFormFragment(userPlant: UserPlantWithDetails) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, EditPlantFragment.newInstance(userPlant))
+            .commit()
+    }
+
+    private fun showAddReminderFragment() {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, AddReminderFragment())
             .commit()
     }
 }
