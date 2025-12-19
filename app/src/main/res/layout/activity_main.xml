@@ -18,26 +18,71 @@
         android:orientation="horizontal"
         android:gravity="center">
 
-        <ImageView
-            android:id="@+id/btnHome"
+        <FrameLayout
+            android:id="@+id/containerHome"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_home" />
+            android:gravity="center">
+            <View
+                android:id="@+id/circleHome"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_nav_button_active"
+                android:visibility="gone"
+                android:layout_gravity="center" />
+            <ImageView
+                android:id="@+id/btnHome"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_home"
+                android:scaleType="centerInside"
+                android:layout_gravity="center" />
+        </FrameLayout>
 
-        <ImageView
-            android:id="@+id/btnCalendar"
+        <FrameLayout
+            android:id="@+id/containerCalendar"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_calendar" />
+            android:gravity="center">
+            <View
+                android:id="@+id/circleCalendar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_nav_button_active"
+                android:visibility="gone"
+                android:layout_gravity="center" />
+            <ImageView
+                android:id="@+id/btnCalendar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_calendar"
+                android:scaleType="centerInside"
+                android:layout_gravity="center" />
+        </FrameLayout>
 
-        <ImageView
-            android:id="@+id/btnPlants"
+        <FrameLayout
+            android:id="@+id/containerPlants"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:src="@drawable/ic_leaf" />
+            android:gravity="center">
+            <View
+                android:id="@+id/circlePlants"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_nav_button_active"
+                android:visibility="gone"
+                android:layout_gravity="center" />
+            <ImageView
+                android:id="@+id/btnPlants"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_leaf"
+                android:scaleType="centerInside"
+                android:layout_gravity="center" />
+        </FrameLayout>
 
     </LinearLayout>
 </LinearLayout>
