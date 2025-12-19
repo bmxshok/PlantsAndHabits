@@ -62,8 +62,8 @@
             android:layout_height="24dp"
             android:src="@drawable/ic_close"
             android:contentDescription="Delete Reminder"
-            android:tint="@color/light_gray"
-            android:layout_marginStart="12dp" />
+            android:layout_marginStart="12dp"
+            app:tint="@color/light_gray" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>
