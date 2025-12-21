@@ -2,4 +2,6 @@
     <string name="app_name">PlantsAndHabits</string>
     <string name="back">Назад</string>
     <string name="save">Сохранить</string>
+    <string name="plant_photo">Фото растения</string>
+    <string name="delete_photo">Удалить фото</string>
 </resources>

@@ -56,4 +56,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime.ktx)
+    
+    // Coil для оптимизированной загрузки изображений
+    implementation("io.coil-kt:coil:2.5.0")
+    
+    // FFmpeg для создания видео из изображений (через готовую обертку)
+    // Используем более простой подход через MediaMuxer
 }

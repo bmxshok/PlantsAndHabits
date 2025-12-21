@@ -261,6 +261,7 @@
                     android:background="@drawable/bg_dark_green_rounded"
                     android:text="Создать таймлапс"
                     android:textColor="@color/white"
+                    android:alpha="0.5"
                     style="@style/NoTintButton" />
 
             </LinearLayout>

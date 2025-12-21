@@ -46,32 +46,21 @@
             android:textSize="16sp"
             android:layout_marginBottom="8dp" />
 
-        <FrameLayout
+        <TextView
+            android:id="@+id/tvPlantSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:minHeight="48dp">
-
-            <Spinner
-                android:id="@+id/spinnerPlant"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_spinner_rounded"
-                android:padding="12dp"
-                android:paddingEnd="32dp"
-                android:minHeight="48dp"
-                android:popupBackground="@color/white"
-                android:dropDownVerticalOffset="4dp" />
-
-            <ImageView
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:src="@drawable/ic_forward_small"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="12dp"
-                android:clickable="false"
-                android:focusable="false" />
-        </FrameLayout>
+            android:text="Выберите растение"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:background="@drawable/bg_clickable_field"
+            android:padding="12dp"
+            android:drawableEnd="@drawable/ic_forward_small"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="24dp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -81,32 +70,21 @@
             android:textSize="16sp"
             android:layout_marginBottom="8dp" />
 
-        <FrameLayout
+        <TextView
+            android:id="@+id/tvWorkSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:minHeight="48dp">
-
-            <Spinner
-                android:id="@+id/spinnerWork"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_spinner_rounded"
-                android:padding="12dp"
-                android:paddingEnd="32dp"
-                android:minHeight="48dp"
-                android:popupBackground="@color/white"
-                android:dropDownVerticalOffset="4dp" />
-
-            <ImageView
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:src="@drawable/ic_forward_small"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="12dp"
-                android:clickable="false"
-                android:focusable="false" />
-        </FrameLayout>
+            android:text="Выберите вид работ"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:background="@drawable/bg_clickable_field"
+            android:padding="12dp"
+            android:drawableEnd="@drawable/ic_forward_small"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="24dp" />
 
         <!-- Периодичность -->
         <TextView

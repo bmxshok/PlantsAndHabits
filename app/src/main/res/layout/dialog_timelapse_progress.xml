@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:minWidth="300dp">
+
+    <TextView
+        android:id="@+id/tvProgressTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Создание таймлапса"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/dark_green"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="0"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvProgressText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Подготовка..."
+        android:textSize="14sp"
+        android:textColor="@color/black"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvProgressPercent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0%"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/dark_green"
+        android:gravity="center" />
+
+</LinearLayout>
+

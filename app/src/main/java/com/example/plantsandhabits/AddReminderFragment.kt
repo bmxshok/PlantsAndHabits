@@ -5,7 +5,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.NumberPicker
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,8 +24,8 @@ class AddReminderFragment : Fragment() {
 
     private lateinit var database: AppDatabase
 
-    private lateinit var plantSpinner: Spinner
-    private lateinit var workSpinner: Spinner
+    private lateinit var tvPlantSummary: TextView
+    private lateinit var tvWorkSummary: TextView
     private lateinit var tvPeriodSummary: TextView
     private lateinit var tvTimeSummary: TextView
     private lateinit var btnBack: ImageView
@@ -33,6 +37,8 @@ class AddReminderFragment : Fragment() {
     private var userPlants: List<UserPlantWithDetails> = emptyList()
     
     // Текущие значения
+    private var selectedPlantIndex: Int = -1
+    private var selectedWorkIndex: Int = -1
     private var periodValue: Int = 7
     private var periodUnitIndex: Int = 0
     private var selectedHour: Int = 9
@@ -58,13 +64,12 @@ class AddReminderFragment : Fragment() {
 
         database = (requireActivity() as DatabaseProvider).database
 
-        plantSpinner = view.findViewById(R.id.spinnerPlant)
-        workSpinner = view.findViewById(R.id.spinnerWork)
+        tvPlantSummary = view.findViewById(R.id.tvPlantSummary)
+        tvWorkSummary = view.findViewById(R.id.tvWorkSummary)
         tvPeriodSummary = view.findViewById(R.id.tvPeriodSummary)
         tvTimeSummary = view.findViewById(R.id.tvTimeSummary)
         btnBack = view.findViewById(R.id.btnBack)
 
-        setupWorkSpinner()
         loadPlants()
         updatePeriodSummary()
         updateTimeSummary()
@@ -72,7 +77,9 @@ class AddReminderFragment : Fragment() {
         btnBack.setOnClickListener { requireActivity().onBackPressed() }
         view.findViewById<Button>(R.id.btnSaveReminder).setOnClickListener { saveReminder() }
         
-        // Обработчики кликов для выбора периодичности и времени
+        // Обработчики кликов для выбора
+        tvPlantSummary.setOnClickListener { showPlantDialog() }
+        tvWorkSummary.setOnClickListener { showWorkDialog() }
         tvPeriodSummary.setOnClickListener { showPeriodDialog() }
         tvTimeSummary.setOnClickListener { showTimeDialog() }
     }
@@ -88,16 +95,6 @@ class AddReminderFragment : Fragment() {
                     requireActivity().onBackPressed()
                     return@launch
                 }
-                val names = userPlants.map {
-                    it.customName ?: it.plant.name
-                }
-                plantSpinner.adapter = ArrayAdapter(
-                    requireContext(),
-                    R.layout.spinner_item,
-                    names
-                ).also { adapter ->
-                    adapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-                }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Ошибка загрузки растений: ${e.message}", Toast.LENGTH_SHORT).show()
                 requireActivity().onBackPressed()
@@ -105,14 +102,34 @@ class AddReminderFragment : Fragment() {
         }
     }
 
-    private fun setupWorkSpinner() {
-        workSpinner.adapter = ArrayAdapter(
-            requireContext(),
-            R.layout.spinner_item,
-            workTypes
-        ).also { adapter ->
-            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+    private fun showPlantDialog() {
+        if (userPlants.isEmpty()) {
+            Toast.makeText(requireContext(), "Сначала добавьте растения в сад", Toast.LENGTH_SHORT).show()
+            return
         }
+        
+        val plantNames = userPlants.mapIndexed { index, plant ->
+            plant.customName ?: plant.plant.name
+        }.toTypedArray()
+        
+        AlertDialog.Builder(requireContext())
+            .setTitle("Выберите растение")
+            .setItems(plantNames) { _, which ->
+                selectedPlantIndex = which
+                val plantName = plantNames[which]
+                tvPlantSummary.text = plantName
+            }
+            .show()
+    }
+
+    private fun showWorkDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Выберите вид работ")
+            .setItems(workTypes.toTypedArray()) { _, which ->
+                selectedWorkIndex = which
+                tvWorkSummary.text = workTypes[which]
+            }
+            .show()
     }
 
     private fun showPeriodDialog() {
@@ -170,15 +187,23 @@ class AddReminderFragment : Fragment() {
     }
 
     private fun saveReminder() {
-        if (userPlants.isEmpty()) return
+        if (userPlants.isEmpty()) {
+            Toast.makeText(requireContext(), "Сначала добавьте растения в сад", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        val plantIndex = plantSpinner.selectedItemPosition
-        if (plantIndex !in userPlants.indices) {
+        if (selectedPlantIndex == -1 || selectedPlantIndex !in userPlants.indices) {
             Toast.makeText(requireContext(), "Выберите растение", Toast.LENGTH_SHORT).show()
             return
         }
-        val userPlant = userPlants[plantIndex]
-        val workType = workTypes[workSpinner.selectedItemPosition]
+
+        if (selectedWorkIndex == -1 || selectedWorkIndex !in workTypes.indices) {
+            Toast.makeText(requireContext(), "Выберите вид работ", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userPlant = userPlants[selectedPlantIndex]
+        val workType = workTypes[selectedWorkIndex]
         val periodUnitCode = periodUnitCodes[periodUnitIndex]
 
         val cal = Calendar.getInstance().apply {

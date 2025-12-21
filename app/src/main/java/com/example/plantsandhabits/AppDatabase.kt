@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Database(
-    entities = [Category::class, Plant::class, UserPlant::class, Reminder::class],
-    version = 3,
+    entities = [Category::class, Plant::class, UserPlant::class, Reminder::class, PlantPhoto::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,7 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "plants_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(AppDatabaseCallback(context))
                     .build()
                 INSTANCE = instance
@@ -57,6 +57,22 @@ abstract class AppDatabase : RoomDatabase() {
                         hour INTEGER NOT NULL,
                         minute INTEGER NOT NULL,
                         nextTriggerAt INTEGER NOT NULL,
+                        FOREIGN KEY(userPlantId) REFERENCES user_plants(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS plant_photos(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userPlantId INTEGER NOT NULL,
+                        photoPath TEXT NOT NULL,
+                        dateAdded INTEGER NOT NULL,
                         FOREIGN KEY(userPlantId) REFERENCES user_plants(id) ON DELETE CASCADE
                     )
                     """.trimIndent()

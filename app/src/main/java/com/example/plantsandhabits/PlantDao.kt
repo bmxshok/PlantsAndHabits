@@ -89,4 +89,17 @@ interface PlantDao {
         """
     )
     suspend fun getRemindersForDate(startOfDay: Long, endOfDay: Long): List<ReminderWithDetails>
+
+    // Фотографии растений
+    @Insert
+    suspend fun insertPlantPhoto(plantPhoto: PlantPhoto): Long
+
+    @Query("SELECT * FROM plant_photos WHERE userPlantId = :userPlantId ORDER BY dateAdded DESC")
+    suspend fun getPlantPhotos(userPlantId: Int): List<PlantPhoto>
+
+    @Query("DELETE FROM plant_photos WHERE id = :photoId")
+    suspend fun deletePlantPhoto(photoId: Int): Int
+
+    @Query("SELECT * FROM plant_photos WHERE id = :photoId")
+    suspend fun getPlantPhotoById(photoId: Int): PlantPhoto?
 }
