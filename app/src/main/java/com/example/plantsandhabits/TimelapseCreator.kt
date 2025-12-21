@@ -456,7 +456,7 @@ object TimelapseCreator {
                 videoBufferInfo.offset = 0
                 videoBufferInfo.size = sampleSize
                 videoBufferInfo.presentationTimeUs = videoExtractor.sampleTime
-                videoBufferInfo.flags = videoExtractor.sampleFlags
+                videoBufferInfo.flags = MediaCodec.BUFFER_FLAG_SYNC_FRAME
                 
                 muxer.writeSampleData(videoTrackIndexMuxer, videoBuffer, videoBufferInfo)
                 videoSamples++
@@ -488,7 +488,7 @@ object TimelapseCreator {
                 audioBufferInfo.offset = 0
                 audioBufferInfo.size = sampleSize
                 audioBufferInfo.presentationTimeUs = audioExtractor.sampleTime + audioTimeOffset
-                audioBufferInfo.flags = audioExtractor.sampleFlags
+                audioBufferInfo.flags = MediaCodec.BUFFER_FLAG_SYNC_FRAME
                 
                 if (audioBufferInfo.presentationTimeUs >= videoDurationUs) {
                     Log.d(TAG, "Audio reached video duration, stopping")
@@ -580,7 +580,7 @@ object TimelapseCreator {
                 bufferInfo.offset = 0
                 bufferInfo.size = sampleSize
                 bufferInfo.presentationTimeUs = videoExtractor.sampleTime
-                bufferInfo.flags = videoExtractor.sampleFlags
+                bufferInfo.flags = MediaCodec.BUFFER_FLAG_SYNC_FRAME
                 
                 muxer.writeSampleData(videoTrackIndexMuxer, buffer, bufferInfo)
                 if (!videoExtractor.advance()) break
