@@ -92,48 +92,111 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                // Этот метод вызывается при каждом открытии БД
+                // Проверяем и добавляем недостающие категории и растения
+                CoroutineScope(Dispatchers.IO).launch {
+                    ensureCategoriesExist()
+                    ensurePlantsExist()
+                }
+            }
 
-
-            private suspend fun populateDatabase() {
+            /**
+             * Проверяет наличие всех необходимых категорий и добавляет недостающие
+             */
+            private suspend fun ensureCategoriesExist() {
                 val database = getDatabase(context)
                 val dao = database.plantDao()
 
-                // 1. Вставляем категории
-                val floweringCategoryId = dao.insertCategory(
-                    Category(name = "Цветущие", imageResName = "ic_flowering")
-                ).toInt()
+                // Получаем все существующие категории
+                val existingCategories = dao.getAllCategories()
+                val existingCategoryNames = existingCategories.map { it.name }.toSet()
 
-                val leafyCategoryId = dao.insertCategory(
-                    Category(name = "Лиственные", imageResName = "ic_leafy")
-                ).toInt()
-
-                val succulentCategoryId = dao.insertCategory(
-                    Category(name = "Суккуленты", imageResName = "ic_succulent")
-                ).toInt()
-
-                val edibleCategoryId = dao.insertCategory(
-                    Category(name = "Съедобные", imageResName = "ic_edible")
-                ).toInt()
-
-                val fernCategoryId = dao.insertCategory(
+                // Список всех необходимых категорий
+                val requiredCategories = listOf(
+                    Category(name = "Цветущие", imageResName = "ic_flowering"),
+                    Category(name = "Лиственные", imageResName = "ic_leafy"),
+                    Category(name = "Суккуленты", imageResName = "ic_succulent"),
+                    Category(name = "Съедобные", imageResName = "ic_edible"),
                     Category(name = "Папоротники", imageResName = "ic_fern")
-                ).toInt()
-
-                // 1.5. Создаем фиктивный Plant для ручных растений (используем первую категорию, но это не важно)
-                dao.insertPlant(
-                    Plant(
-                        categoryId = floweringCategoryId,
-                        name = "_MANUAL_PLACEHOLDER_",
-                        scientificName = null,
-                        description = "",
-                        careTips = "",
-                        imageResName = "sample_category"
-                    )
                 )
 
-                // 2. Вставляем растения
-                // Комнатные растения
-                val diffenbachiaId = dao.insertPlant(
+                // Добавляем только те категории, которых еще нет
+                for (category in requiredCategories) {
+                    if (!existingCategoryNames.contains(category.name)) {
+                        dao.insertCategory(category)
+                    }
+                }
+            }
+
+            /**
+             * Проверяет наличие всех необходимых растений и добавляет недостающие
+             */
+            private suspend fun ensurePlantsExist() {
+                val database = getDatabase(context)
+                val dao = database.plantDao()
+
+                // Сначала убеждаемся, что категории существуют
+                ensureCategoriesExist()
+                
+                // Получаем все существующие растения
+                val existingPlants = dao.getAllPlants()
+                val existingPlantNames = existingPlants.map { it.name }.toSet()
+
+                // Получаем ID категорий для использования при создании растений
+                val allCategories = dao.getAllCategories()
+                val floweringCategoryId = allCategories.find { it.name == "Цветущие" }?.id ?: 0
+                val leafyCategoryId = allCategories.find { it.name == "Лиственные" }?.id ?: 0
+                val succulentCategoryId = allCategories.find { it.name == "Суккуленты" }?.id ?: 0
+                val edibleCategoryId = allCategories.find { it.name == "Съедобные" }?.id ?: 0
+                val fernCategoryId = allCategories.find { it.name == "Папоротники" }?.id ?: 0
+
+                // Получаем список всех необходимых растений
+                val requiredPlants = getAllRequiredPlants(
+                    floweringCategoryId,
+                    leafyCategoryId,
+                    succulentCategoryId,
+                    edibleCategoryId,
+                    fernCategoryId
+                )
+
+                // Добавляем только те растения, которых еще нет
+                for (plant in requiredPlants) {
+                    if (!existingPlantNames.contains(plant.name)) {
+                        dao.insertPlant(plant)
+                    }
+                }
+
+                // Проверяем наличие placeholder для ручных растений
+                val existingPlaceholder = dao.getManualPlantPlaceholder()
+                if (existingPlaceholder == null && floweringCategoryId != 0) {
+                    dao.insertPlant(
+                        Plant(
+                            categoryId = floweringCategoryId,
+                            name = "_MANUAL_PLACEHOLDER_",
+                            scientificName = null,
+                            description = "",
+                            careTips = "",
+                            imageResName = "sample_category"
+                        )
+                    )
+                }
+            }
+
+            /**
+             * Возвращает список всех необходимых растений
+             * Добавляйте сюда новые растения для автоматического добавления при запуске
+             */
+            private fun getAllRequiredPlants(
+                floweringCategoryId: Int,
+                leafyCategoryId: Int,
+                succulentCategoryId: Int,
+                edibleCategoryId: Int,
+                fernCategoryId: Int
+            ): List<Plant> {
+                return listOf(
+                    // Комнатные растения
                     Plant(
                         categoryId = floweringCategoryId,
                         name = "Диффенбахия",
@@ -141,10 +204,7 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Популярное комнатное растение с красивыми листьями, относящееся к декоративно-лиственным. Известна своими крупными, овальными листьями с разнообразными зелеными и кремовыми узорами.",
                         careTips = "• Освещение: Яркий рассеянный свет\n• Полив: Умеренный, летом 2-3 раза в неделю\n• Температура: 18-25°C\n• Влажность: Высокая, рекомендуется опрыскивание",
                         imageResName = "ic_leaf"
-                    )
-                ).toInt()
-
-                dao.insertPlant(
+                    ),
                     Plant(
                         categoryId = floweringCategoryId,
                         name = "Фикус Бенджамина",
@@ -152,10 +212,7 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Вечнозеленое дерево с мелкими листьями. Популярное комнатное растение, которое очищает воздух.",
                         careTips = "• Освещение: Яркий свет, но не прямые лучи\n• Полив: Умеренный, зимой реже\n• Обрезка: Можно формировать крону\n• Пересадка: Раз в 2-3 года",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                dao.insertPlant(
+                    ),
                     Plant(
                         categoryId = floweringCategoryId,
                         name = "Монстера",
@@ -163,11 +220,8 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Крупное тропическое растение с резными листьями. Очень популярно в интерьерах.",
                         careTips = "• Освещение: Яркий рассеянный свет\n• Полив: Регулярный, но не переувлажнять\n• Опора: Нуждается в опоре для роста\n• Листья: Можно протирать влажной тряпкой",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                // Садовые цветы
-                dao.insertPlant(
+                    ),
+                    // Садовые цветы
                     Plant(
                         categoryId = leafyCategoryId,
                         name = "Роза",
@@ -175,10 +229,7 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Королева цветов. Бывает разных сортов и цветов. Требует внимательного ухода.",
                         careTips = "• Местоположение: Солнечное место\n• Почва: Плодородная, дренированная\n• Обрезка: Весной и после цветения\n• Зимовка: Требует укрытия в холодных регионах",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                dao.insertPlant(
+                    ),
                     Plant(
                         categoryId = leafyCategoryId,
                         name = "Тюльпан",
@@ -186,11 +237,8 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Весенний луковичный цветок. Бывает разных цветов и форм.",
                         careTips = "• Посадка: Осенью\n• Глубина: 3 высоты луковицы\n• После цветения: Дать листьям засохнуть естественно\n• Выкопка: Каждые 2-3 года",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                // Кактусы и суккуленты
-                dao.insertPlant(
+                    ),
+                    // Кактусы и суккуленты
                     Plant(
                         categoryId = succulentCategoryId,
                         name = "Кактус Опунция",
@@ -198,10 +246,7 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Суккулент с плоскими сегментами. Легок в уходе, подходит для начинающих.",
                         careTips = "• Освещение: Максимально яркое\n• Полив: Очень редкий, зимой почти не поливать\n• Температура: Зимой прохладное содержание (10-15°C)\n• Почва: Специальная для кактусов",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                dao.insertPlant(
+                    ),
                     Plant(
                         categoryId = succulentCategoryId,
                         name = "Алоэ Вера",
@@ -209,11 +254,8 @@ abstract class AppDatabase : RoomDatabase() {
                         description = "Лечебное суккулентное растение. Сок применяется для заживления ран и ожогов.",
                         careTips = "• Освещение: Яркое\n• Полив: Очень умеренный\n• Размножение: Детками\n• Пересадка: Когда горшок становится мал",
                         imageResName = "ic_leaf"
-                    )
-                )
-
-                // Орхидеи
-                val orchidId = dao.insertPlant(
+                    ),
+                    // Орхидеи
                     Plant(
                         categoryId = edibleCategoryId,
                         name = "Фаленопсис",
@@ -222,8 +264,13 @@ abstract class AppDatabase : RoomDatabase() {
                         careTips = "• Освещение: Яркий рассеянный свет\n• Полив: Методом погружения\n• Субстрат: Кора, не обычная земля\n• Цветение: После периода покоя",
                         imageResName = "ic_leafy"
                     )
-                ).toInt()
+                )
+            }
 
+            private suspend fun populateDatabase() {
+                // Используем ensurePlantsExist для консистентности
+                // Это создаст все категории и растения при первом запуске
+                ensurePlantsExist()
             }    }
     }
 }
