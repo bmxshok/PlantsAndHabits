@@ -10,6 +10,9 @@ interface PlantDao {
     @Insert
     suspend fun insertCategory(category: Category): Long
 
+    @Query("UPDATE categories SET imageResName = :imageResName WHERE id = :categoryId")
+    suspend fun updateCategoryImage(categoryId: Int, imageResName: String): Int
+
     @Query("SELECT * FROM categories ORDER BY name")
     suspend fun getAllCategories(): List<Category>
 
@@ -19,6 +22,9 @@ interface PlantDao {
     // Растения
     @Insert
     suspend fun insertPlant(plant: Plant): Long
+
+    @Query("UPDATE plants SET imageResName = :imageResName WHERE id = :plantId")
+    suspend fun updatePlantImage(plantId: Int, imageResName: String): Int
 
     @Query("SELECT * FROM plants WHERE categoryId = :categoryId AND name != '_MANUAL_PLACEHOLDER_' ORDER BY name")
     suspend fun getPlantsByCategory(categoryId: Int): List<Plant>

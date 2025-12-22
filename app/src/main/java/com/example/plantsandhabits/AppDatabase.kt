@@ -111,7 +111,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Получаем все существующие категории
                 val existingCategories = dao.getAllCategories()
-                val existingCategoryNames = existingCategories.map { it.name }.toSet()
+                val existingCategoriesMap = existingCategories.associateBy { it.name }
 
                 // Список всех необходимых категорий
                 val requiredCategories = listOf(
@@ -122,10 +122,15 @@ abstract class AppDatabase : RoomDatabase() {
                     Category(name = "Папоротники", imageResName = "ic_fern")
                 )
 
-                // Добавляем только те категории, которых еще нет
+                // Добавляем новые категории или обновляем изображения существующих
                 for (category in requiredCategories) {
-                    if (!existingCategoryNames.contains(category.name)) {
+                    val existingCategory = existingCategoriesMap[category.name]
+                    if (existingCategory == null) {
+                        // Категории нет - добавляем
                         dao.insertCategory(category)
+                    } else if (existingCategory.imageResName != category.imageResName) {
+                        // Категория есть, но изображение изменилось - обновляем
+                        dao.updateCategoryImage(existingCategory.id, category.imageResName)
                     }
                 }
             }
@@ -142,7 +147,7 @@ abstract class AppDatabase : RoomDatabase() {
                 
                 // Получаем все существующие растения
                 val existingPlants = dao.getAllPlants()
-                val existingPlantNames = existingPlants.map { it.name }.toSet()
+                val existingPlantsMap = existingPlants.associateBy { it.name }
 
                 // Получаем ID категорий для использования при создании растений
                 val allCategories = dao.getAllCategories()
@@ -161,10 +166,15 @@ abstract class AppDatabase : RoomDatabase() {
                     fernCategoryId
                 )
 
-                // Добавляем только те растения, которых еще нет
+                // Добавляем новые растения или обновляем изображения существующих
                 for (plant in requiredPlants) {
-                    if (!existingPlantNames.contains(plant.name)) {
+                    val existingPlant = existingPlantsMap[plant.name]
+                    if (existingPlant == null) {
+                        // Растения нет - добавляем
                         dao.insertPlant(plant)
+                    } else if (existingPlant.imageResName != plant.imageResName) {
+                        // Растение есть, но изображение изменилось - обновляем
+                        dao.updatePlantImage(existingPlant.id, plant.imageResName)
                     }
                 }
 
