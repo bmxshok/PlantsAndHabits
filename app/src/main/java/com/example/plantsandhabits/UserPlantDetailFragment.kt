@@ -119,8 +119,8 @@ class UserPlantDetailFragment : Fragment() {
             editUserPlant()
         }
 
-        // Кнопка "Удалить"
-        view.findViewById<Button>(R.id.btnDeletePlant).setOnClickListener {
+        // Кнопка "Удалить" в toolbar
+        view.findViewById<ImageView>(R.id.btnDeletePlant).setOnClickListener {
             showDeleteConfirmationDialog()
         }
 
@@ -197,9 +197,40 @@ class UserPlantDetailFragment : Fragment() {
         val displayName = userPlantWithDetails.customName ?: plant.name
         view.findViewById<TextView>(R.id.tvPlantNameDetail).text = displayName
 
-        view.findViewById<TextView>(R.id.tvScientificName).text = plant.scientificName
-        view.findViewById<TextView>(R.id.tvDescription).text = plant.description
-        view.findViewById<TextView>(R.id.tvCareTips).text = plant.careTips
+        // Научное название (может быть null)
+        val tvScientificName = view.findViewById<TextView>(R.id.tvScientificName)
+        if (plant.scientificName.isNullOrEmpty()) {
+            tvScientificName.visibility = View.GONE
+        } else {
+            tvScientificName.text = plant.scientificName
+            tvScientificName.visibility = View.VISIBLE
+        }
+        
+        // Описание - показываем секцию только если есть текст
+        val sectionDescription = view.findViewById<android.view.ViewGroup>(R.id.sectionDescription)
+        val tvDescription = view.findViewById<TextView>(R.id.tvDescription)
+        val divider1 = view.findViewById<View>(R.id.divider1)
+        if (plant.description.isNullOrBlank()) {
+            sectionDescription.visibility = View.GONE
+            divider1.visibility = View.GONE
+        } else {
+            tvDescription.text = plant.description
+            sectionDescription.visibility = View.VISIBLE
+            divider1.visibility = View.VISIBLE
+        }
+        
+        // Советы по уходу - показываем секцию только если есть текст
+        val sectionCareTips = view.findViewById<android.view.ViewGroup>(R.id.sectionCareTips)
+        val tvCareTips = view.findViewById<TextView>(R.id.tvCareTips)
+        val divider2 = view.findViewById<View>(R.id.divider2)
+        if (plant.careTips.isNullOrBlank()) {
+            sectionCareTips.visibility = View.GONE
+            divider2.visibility = View.GONE
+        } else {
+            tvCareTips.text = plant.careTips
+            sectionCareTips.visibility = View.VISIBLE
+            divider2.visibility = View.VISIBLE
+        }
 
         // Загружаем изображение растения
         loadPlantImage(view)

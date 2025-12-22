@@ -1,54 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="72dp"
-    android:paddingVertical="8dp">
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/white">
 
-    <ImageView
-        android:id="@+id/imgPlant"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:scaleType="centerCrop"
-
-        android:background="@drawable/circle_mask"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
-
-    <TextView
-        android:id="@+id/tvPlantName"
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Название растения"
-        android:textSize="18sp"
-        android:textColor="@color/dark_green"
-        android:layout_marginStart="12dp"
-        app:layout_constraintStart_toEndOf="@id/imgPlant"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/imgArrow"/>
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tvScientificName"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Научное название"
-        android:textSize="14sp"
-        android:textColor="@color/dark_green"
-        android:layout_marginStart="12dp"
-        app:layout_constraintStart_toEndOf="@id/imgPlant"
-        app:layout_constraintTop_toBottomOf="@id/tvPlantName"
-        app:layout_constraintEnd_toStartOf="@id/imgArrow"/>
+        <!-- Красивое окошко для фотографии -->
+        <FrameLayout
+            android:id="@+id/containerPhoto"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/bg_plant_photo_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-    <ImageView
-        android:id="@+id/imgArrow"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:src="@drawable/ic_forward"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+            <ImageView
+                android:id="@+id/imgPlant"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/plant_photo" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Заглушка с листиком (показывается когда фото нет) -->
+            <ImageView
+                android:id="@+id/imgPlaceholder"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_leaf"
+                android:contentDescription="@string/plant_placeholder"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <!-- Текстовая информация -->
+        <LinearLayout
+            android:id="@+id/containerText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toEndOf="@id/containerPhoto"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/imgArrow">
+
+            <TextView
+                android:id="@+id/tvPlantName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Название растения"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/dark_green"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvScientificName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Научное название"
+                android:textSize="14sp"
+                android:textColor="@color/light_gray"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+        <!-- Стрелка -->
+        <ImageView
+            android:id="@+id/imgArrow"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_forward"
+            android:tint="@color/dark_green"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>

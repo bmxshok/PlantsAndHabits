@@ -36,7 +36,7 @@ class RemindersAdapter(
         fun bind(reminder: ReminderWithDetails, userPlant: UserPlantWithDetails?) {
             val displayName = reminder.customName ?: reminder.plantName
             tvPlantName.text = displayName
-            tvTask.text = reminder.workType.lowercase()
+            tvTask.text = reminder.workType.replaceFirstChar { it.uppercase() }
 
             // Загружаем изображение растения
             loadPlantImage(userPlant)

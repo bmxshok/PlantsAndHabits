@@ -6,6 +6,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import coil.request.ImageRequest
+import coil.size.Size
+import java.io.File
 
 class UserPlantAdapter(
     private val userPlants: List<UserPlantWithDetails>,
@@ -14,6 +18,7 @@ class UserPlantAdapter(
 
     inner class UserPlantViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
+        private val imgPlaceholder: ImageView = itemView.findViewById(R.id.imgPlaceholder)
         private val tvPlantName: TextView = itemView.findViewById(R.id.tvPlantName)
         private val tvPlantDescription: TextView = itemView.findViewById(R.id.tvScientificName)
 
@@ -23,43 +28,62 @@ class UserPlantAdapter(
             // Показываем тип растения вместо латинского названия
             tvPlantDescription.text = userPlant.plantType ?: userPlant.plant.scientificName ?: ""
             
-            // Загружаем изображение: сначала пытаемся загрузить кастомное, затем стандартное
-            try {
-                if (!userPlant.customImage.isNullOrEmpty()) {
-                    // Загружаем кастомное изображение из файла
-                    val imageFile = java.io.File(userPlant.customImage)
-                    if (imageFile.exists()) {
-                        val bitmap = android.graphics.BitmapFactory.decodeFile(imageFile.absolutePath)
-                        imgPlant.setImageBitmap(bitmap)
-                    } else {
-                        // Если файл не найден, используем стандартное изображение
-                        loadDefaultImage(userPlant.plant.imageResName)
-                    }
-                } else {
-                    loadDefaultImage(userPlant.plant.imageResName)
-                }
-            } catch (e: Exception) {
-                imgPlant.setImageResource(R.drawable.sample_category)
-            }
+            // Загружаем изображение с помощью Coil
+            loadPlantImage(userPlant)
 
             itemView.setOnClickListener {
                 onItemClick(userPlant)
             }
         }
 
-        private fun loadDefaultImage(imageResName: String) {
-            try {
-                val drawableId = ResourceHelper.getDrawableId(
-                    itemView.context,
-                    imageResName
-                )
-                if (drawableId != 0) {
-                    imgPlant.setImageResource(drawableId)
-                } else {
-                    imgPlant.setImageResource(R.drawable.sample_category)
+        private fun loadPlantImage(userPlant: UserPlantWithDetails) {
+            val hasCustomImage = !userPlant.customImage.isNullOrEmpty() && 
+                                 File(userPlant.customImage).exists()
+            
+            if (hasCustomImage) {
+                // Загружаем кастомное изображение
+                imgPlaceholder.visibility = View.GONE
+                imgPlant.visibility = View.VISIBLE
+                
+                imgPlant.load(File(userPlant.customImage)) {
+                    size(Size(160, 160)) // Загружаем в нужном размере для оптимизации
+                    crossfade(true)
+                    listener(
+                        onError = { _, _ ->
+                            // Если ошибка загрузки, показываем заглушку
+                            imgPlaceholder.visibility = View.VISIBLE
+                            imgPlant.visibility = View.GONE
+                        }
+                    )
                 }
-            } catch (e: Exception) {
-                imgPlant.setImageResource(R.drawable.sample_category)
+            } else {
+                // Пытаемся загрузить стандартное изображение
+                val drawableId = try {
+                    ResourceHelper.getDrawableId(itemView.context, userPlant.plant.imageResName)
+                } catch (e: Exception) {
+                    0
+                }
+                
+                if (drawableId != 0) {
+                    // Есть стандартное изображение
+                    imgPlaceholder.visibility = View.GONE
+                    imgPlant.visibility = View.VISIBLE
+                    imgPlant.load(drawableId) {
+                        size(Size(160, 160))
+                        crossfade(true)
+                        listener(
+                            onError = { _, _ ->
+                                // Если ошибка загрузки, показываем заглушку
+                                imgPlaceholder.visibility = View.VISIBLE
+                                imgPlant.visibility = View.GONE
+                            }
+                        )
+                    }
+                } else {
+                    // Нет изображения - показываем красивую заглушку с листиком
+                    imgPlant.visibility = View.GONE
+                    imgPlaceholder.visibility = View.VISIBLE
+                }
             }
         }
     }

@@ -1,11 +1,14 @@
 package com.example.plantsandhabits
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
@@ -15,6 +18,9 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -27,6 +33,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class EditPlantFragment : Fragment() {
 
@@ -34,15 +43,32 @@ class EditPlantFragment : Fragment() {
     private lateinit var userPlantWithDetails: UserPlantWithDetails
     private var selectedImageUri: Uri? = null
     private var currentImagePath: String? = null
+    private var currentPhotoPath: String? = null
 
-    private val imagePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                selectedImageUri = uri
-                loadImageFromUri(uri)
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            loadImageFromUri(it)
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && currentPhotoPath != null) {
+            val file = File(currentPhotoPath!!)
+            if (file.exists()) {
+                selectedImageUri = Uri.fromFile(file)
+                loadImageFromFile(currentPhotoPath!!, view?.findViewById(R.id.btnAddPhoto) ?: return@registerForActivityResult)
             }
+        }
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCamera()
+        } else {
+            Toast.makeText(requireContext(), "Разрешение на использование камеры необходимо для съемки фото", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -101,7 +127,7 @@ class EditPlantFragment : Fragment() {
         }
 
         btnAddPhoto.setOnClickListener {
-            openImagePicker()
+            showPhotoSourceDialog()
         }
 
         btnSavePlant.setOnClickListener {
@@ -109,9 +135,55 @@ class EditPlantFragment : Fragment() {
         }
     }
 
-    private fun openImagePicker() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        imagePickerLauncher.launch(intent)
+    private fun showPhotoSourceDialog() {
+        val options = arrayOf("Камера", "Галерея")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Выберите источник фото")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openCamera()
+                    1 -> openGallery()
+                }
+            }
+            .show()
+    }
+
+    private fun openCamera() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            return
+        }
+
+        launchCamera()
+    }
+
+    private fun launchCamera() {
+        try {
+            val photoFile = createImageFile()
+            currentPhotoPath = photoFile.absolutePath
+
+            val photoURI = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                photoFile
+            )
+
+            cameraLauncher.launch(photoURI)
+        } catch (e: IOException) {
+            Log.e("EditPlantFragment", "Error creating image file", e)
+            Toast.makeText(requireContext(), "Ошибка при создании файла", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openGallery() {
+        galleryLauncher.launch("image/*")
+    }
+
+    private fun createImageFile(): File {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val imageFileName = "JPEG_${timeStamp}_"
+        val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(imageFileName, ".jpg", storageDir)
     }
 
     private fun loadImageFromUri(uri: Uri) {
@@ -172,7 +244,20 @@ class EditPlantFragment : Fragment() {
                         }
                     }
                     // Сохраняем новое изображение
-                    savedImagePath = saveImageToFile(selectedImageUri!!)
+                    savedImagePath = if (currentPhotoPath != null && File(currentPhotoPath!!).exists()) {
+                        // Если фото сделано камерой, используем существующий файл
+                        val sourceFile = File(currentPhotoPath!!)
+                        val imagesDir = File(requireContext().filesDir, "plant_images")
+                        if (!imagesDir.exists()) {
+                            imagesDir.mkdirs()
+                        }
+                        val destFile = File(imagesDir, "plant_${System.currentTimeMillis()}.jpg")
+                        sourceFile.copyTo(destFile, overwrite = true)
+                        destFile.absolutePath
+                    } else {
+                        // Если выбрано из галереи, сохраняем через URI
+                        saveImageToFile(selectedImageUri!!)
+                    }
                 }
 
                 // Обновляем UserPlant в БД
