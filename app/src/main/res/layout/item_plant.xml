@@ -87,10 +87,10 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_forward"
-            android:tint="@color/dark_green"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:tint="@color/dark_green" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
