@@ -26,6 +26,9 @@ interface PlantDao {
     @Query("UPDATE plants SET imageResName = :imageResName WHERE id = :plantId")
     suspend fun updatePlantImage(plantId: Int, imageResName: String): Int
 
+    @Query("UPDATE plants SET categoryId = :categoryId, scientificName = :scientificName, description = :description, careTips = :careTips, imageResName = :imageResName WHERE id = :plantId")
+    suspend fun updatePlant(plantId: Int, categoryId: Int, scientificName: String?, description: String, careTips: String, imageResName: String): Int
+
     @Query("SELECT * FROM plants WHERE categoryId = :categoryId AND name != '_MANUAL_PLACEHOLDER_' ORDER BY name")
     suspend fun getPlantsByCategory(categoryId: Int): List<Plant>
 

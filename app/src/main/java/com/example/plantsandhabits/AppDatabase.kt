@@ -122,14 +122,14 @@ abstract class AppDatabase : RoomDatabase() {
                     Category(name = "Папоротники", imageResName = "ic_fern")
                 )
 
-                // Добавляем новые категории или обновляем изображения существующих
+                // Добавляем новые категории или обновляем параметры существующих
                 for (category in requiredCategories) {
                     val existingCategory = existingCategoriesMap[category.name]
                     if (existingCategory == null) {
                         // Категории нет - добавляем
                         dao.insertCategory(category)
                     } else if (existingCategory.imageResName != category.imageResName) {
-                        // Категория есть, но изображение изменилось - обновляем
+                        // Категория есть, но параметры изменились - обновляем
                         dao.updateCategoryImage(existingCategory.id, category.imageResName)
                     }
                 }
@@ -166,15 +166,31 @@ abstract class AppDatabase : RoomDatabase() {
                     fernCategoryId
                 )
 
-                // Добавляем новые растения или обновляем изображения существующих
+                // Добавляем новые растения или обновляем параметры существующих
                 for (plant in requiredPlants) {
                     val existingPlant = existingPlantsMap[plant.name]
                     if (existingPlant == null) {
                         // Растения нет - добавляем
                         dao.insertPlant(plant)
-                    } else if (existingPlant.imageResName != plant.imageResName) {
-                        // Растение есть, но изображение изменилось - обновляем
-                        dao.updatePlantImage(existingPlant.id, plant.imageResName)
+                    } else {
+                        // Проверяем, изменились ли какие-либо параметры
+                        val hasChanges = existingPlant.categoryId != plant.categoryId ||
+                                existingPlant.scientificName != plant.scientificName ||
+                                existingPlant.description != plant.description ||
+                                existingPlant.careTips != plant.careTips ||
+                                existingPlant.imageResName != plant.imageResName
+                        
+                        if (hasChanges) {
+                            // Растение есть, но параметры изменились - обновляем все поля
+                            dao.updatePlant(
+                                existingPlant.id,
+                                plant.categoryId,
+                                plant.scientificName,
+                                plant.description,
+                                plant.careTips,
+                                plant.imageResName
+                            )
+                        }
                     }
                 }
 
