@@ -26,13 +26,13 @@ object TimelapseCreator {
     private const val FRAME_RATE = 30 // 30 кадров в секунду для плавности
     private const val I_FRAME_INTERVAL = 1
     private const val BIT_RATE = 2000000 // 2 Mbps
-    private const val VIDEO_WIDTH = 1280
-    private const val VIDEO_HEIGHT = 720
+    private const val MAX_VIDEO_WIDTH = 1920 // Максимальная ширина видео
+    private const val MAX_VIDEO_HEIGHT = 1080 // Максимальная высота видео
     private const val TIMEOUT_USEC = 10000L
     
-    // Параметры для плавных переходов
-    private const val SECONDS_PER_PHOTO = 3.0 // 3 секунды на каждую фотографию
-    private const val FADE_DURATION_FRAMES = 15 // Количество кадров для fade эффекта (0.5 секунды при 30 FPS)
+    // Параметры для быстрого таймлапса (история роста растения)
+    private const val SECONDS_PER_PHOTO = 0.5 // 0.5 секунды на каждую фотографию для быстрого таймлапса
+    private const val FADE_DURATION_FRAMES = 5 // Количество кадров для fade эффекта (0.17 секунды при 30 FPS) - быстрый переход
 
     /**
      * Создает таймлапс видео из списка фотографий
@@ -62,12 +62,19 @@ object TimelapseCreator {
             val outputFile = File(outputPath)
             outputFile.parentFile?.mkdirs()
 
+            // Определяем разрешение видео на основе фотографий (сохраняем соотношение сторон)
+            val videoDimensions = determineVideoDimensions(photoPaths)
+            val videoWidth = videoDimensions.first
+            val videoHeight = videoDimensions.second
+            
+            Log.d(TAG, "Video dimensions: ${videoWidth}x${videoHeight}")
+
             // Инициализируем MediaMuxer
             muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
 
             // Создаем MediaCodec для кодирования видео
             encoder = MediaCodec.createEncoderByType(MIME_TYPE)
-            val format = MediaFormat.createVideoFormat(MIME_TYPE, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
+            val format = MediaFormat.createVideoFormat(MIME_TYPE, videoWidth, videoHeight).apply {
                 setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
                 setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
                 setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE)
@@ -82,10 +89,10 @@ object TimelapseCreator {
             var videoTrackIndex = -1
             var encoderOutputBufferInfo = MediaCodec.BufferInfo()
 
-            // Загружаем все фотографии заранее для плавных переходов
+            // Загружаем все фотографии заранее с сохранением соотношения сторон
             val bitmaps = mutableListOf<Bitmap?>()
             for (photoPath in photoPaths) {
-                val bitmap = loadAndScaleBitmap(photoPath, VIDEO_WIDTH, VIDEO_HEIGHT)
+                val bitmap = loadAndScaleBitmapPreservingAspect(photoPath, videoWidth, videoHeight)
                 bitmaps.add(bitmap)
             }
 
@@ -111,10 +118,10 @@ object TimelapseCreator {
                     if (isFadeOut && nextBitmap != null) {
                         // Fade out текущей фотографии и fade in следующей
                         val fadeProgress = (frameInPhoto - (framesPerPhoto - FADE_DURATION_FRAMES)).toFloat() / FADE_DURATION_FRAMES
-                        renderFadeTransition(inputSurface!!, currentBitmap, nextBitmap, fadeProgress, VIDEO_WIDTH, VIDEO_HEIGHT)
+                        renderFadeTransition(inputSurface!!, currentBitmap, nextBitmap, fadeProgress, videoWidth, videoHeight)
                     } else {
                         // Обычный кадр без эффектов
-                        renderFrameToSurface(inputSurface!!, currentBitmap, VIDEO_WIDTH, VIDEO_HEIGHT, 1.0f)
+                        renderFrameToSurface(inputSurface!!, currentBitmap, videoWidth, videoHeight, 1.0f)
                     }
 
                     // Кодируем кадр - дренируем encoder после рендеринга
@@ -272,25 +279,105 @@ object TimelapseCreator {
         } while (outputBufferIndex >= 0)
     }
 
-    private fun loadAndScaleBitmap(photoPath: String, targetWidth: Int, targetHeight: Int): Bitmap? {
+    /**
+     * Определяет оптимальное разрешение видео на основе всех фотографий
+     * Возвращает пару (ширина, высота) с сохранением соотношения сторон
+     */
+    private fun determineVideoDimensions(photoPaths: List<String>): Pair<Int, Int> {
+        var maxWidth = 0
+        var maxHeight = 0
+        var commonAspectRatio: Float? = null
+        
+        // Анализируем все фотографии
+        for (photoPath in photoPaths) {
+            try {
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeFile(photoPath, options)
+                
+                val width = options.outWidth
+                val height = options.outHeight
+                val aspectRatio = width.toFloat() / height
+                
+                maxWidth = maxOf(maxWidth, width)
+                maxHeight = maxOf(maxHeight, height)
+                
+                // Определяем общее соотношение сторон (берем наиболее частое)
+                if (commonAspectRatio == null) {
+                    commonAspectRatio = aspectRatio
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error reading photo dimensions: $photoPath", e)
+            }
+        }
+        
+        // Если фотографий нет, используем стандартное разрешение
+        if (maxWidth == 0 || maxHeight == 0) {
+            return Pair(MAX_VIDEO_WIDTH, MAX_VIDEO_HEIGHT)
+        }
+        
+        // Ограничиваем максимальным разрешением
+        val aspectRatio = maxWidth.toFloat() / maxHeight
+        val finalWidth: Int
+        val finalHeight: Int
+        
+        if (aspectRatio > MAX_VIDEO_WIDTH.toFloat() / MAX_VIDEO_HEIGHT) {
+            // Широкое изображение
+            finalWidth = minOf(maxWidth, MAX_VIDEO_WIDTH)
+            finalHeight = (finalWidth / aspectRatio).toInt()
+        } else {
+            // Высокое изображение
+            finalHeight = minOf(maxHeight, MAX_VIDEO_HEIGHT)
+            finalWidth = (finalHeight * aspectRatio).toInt()
+        }
+        
+        // Округляем до четных чисел (требование для некоторых кодеков)
+        return Pair(finalWidth and 0xFFFFFFFE.toInt(), finalHeight and 0xFFFFFFFE.toInt())
+    }
+    
+    /**
+     * Загружает и масштабирует bitmap с сохранением соотношения сторон
+     * Изображение центрируется с черными полосами (letterbox/pillarbox) если нужно
+     */
+    private fun loadAndScaleBitmapPreservingAspect(photoPath: String, targetWidth: Int, targetHeight: Int): Bitmap? {
         return try {
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
             BitmapFactory.decodeFile(photoPath, options)
 
-            // Вычисляем коэффициент масштабирования
-            val scaleFactor = minOf(
-                options.outWidth.toFloat() / targetWidth,
-                options.outHeight.toFloat() / targetHeight
-            )
+            val originalWidth = options.outWidth
+            val originalHeight = options.outHeight
+            val originalAspectRatio = originalWidth.toFloat() / originalHeight
+            val targetAspectRatio = targetWidth.toFloat() / targetHeight
 
+            // Вычисляем размеры для масштабирования с сохранением соотношения сторон
+            val scaledWidth: Int
+            val scaledHeight: Int
+            
+            if (originalAspectRatio > targetAspectRatio) {
+                // Исходное изображение шире - масштабируем по ширине
+                scaledWidth = targetWidth
+                scaledHeight = (targetWidth / originalAspectRatio).toInt()
+            } else {
+                // Исходное изображение выше - масштабируем по высоте
+                scaledHeight = targetHeight
+                scaledWidth = (targetHeight * originalAspectRatio).toInt()
+            }
+
+            // Загружаем и масштабируем bitmap
             options.inJustDecodeBounds = false
+            val scaleFactor = minOf(
+                originalWidth.toFloat() / scaledWidth,
+                originalHeight.toFloat() / scaledHeight
+            )
             options.inSampleSize = if (scaleFactor > 1) scaleFactor.toInt() else 1
 
             val bitmap = BitmapFactory.decodeFile(photoPath, options)
             if (bitmap != null) {
-                Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+                // Масштабируем с сохранением соотношения сторон
+                Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
             } else {
                 null
             }
@@ -321,6 +408,10 @@ object TimelapseCreator {
         }
     }
 
+    /**
+     * Плавный fade переход (затемнение)
+     * Текущая фотография плавно затемняется, следующая появляется
+     */
     private fun renderFadeTransition(
         surface: Surface,
         currentBitmap: Bitmap,

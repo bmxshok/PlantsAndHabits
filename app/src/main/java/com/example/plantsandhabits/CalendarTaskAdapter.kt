@@ -28,9 +28,8 @@ class CalendarTaskAdapter(
             val plantName = reminder.customName ?: reminder.plantName
             tvPlantName.text = plantName
 
-            val dateFormat = SimpleDateFormat("d MMMM", Locale("ru"))
-            val dateStr = dateFormat.format(date)
-            tvTaskDate.text = "${reminder.workType} - $dateStr"
+            // Отображаем только тип работы без даты
+            tvTaskDate.text = reminder.workType.replaceFirstChar { it.uppercase() }
 
             // Отображаем галочку в зависимости от статуса выполнения
             // В календаре галочка только для просмотра, нельзя ставить

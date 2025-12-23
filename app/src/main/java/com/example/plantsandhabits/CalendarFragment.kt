@@ -197,25 +197,11 @@ class CalendarFragment : Fragment() {
         val year = currentCalendar.get(Calendar.YEAR)
         tvMonthYear.text = "${monthNames[month]} $year"
 
-        // Обновляем подзаголовок с датой
-        updateDateSubtitle()
+        // Подзаголовок всегда показывает "Список дел"
+        tvDateSubtitle.text = "Список дел"
     }
 
-    private fun updateDateSubtitle() {
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        if (isSameDay(selectedCalendar, today)) {
-            tvDateSubtitle.text = "Сегодня"
-        } else {
-            val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale("ru"))
-            tvDateSubtitle.text = dateFormat.format(selectedCalendar.time)
-        }
-    }
+    // Функция updateDateSubtitle() больше не используется - подзаголовок всегда "Список дел"
 
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
