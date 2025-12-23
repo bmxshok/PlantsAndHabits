@@ -57,6 +57,16 @@
 
         </LinearLayout>
 
+        <ImageView
+            android:id="@+id/imgCheck"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_checkbox_empty"
+            android:contentDescription="Отметить как выполненное"
+            android:clickable="true"
+            android:focusable="true" />
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>
 

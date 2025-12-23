@@ -5,4 +5,6 @@
     <string name="plant_photo">Фото растения</string>
     <string name="delete_photo">Удалить фото</string>
     <string name="plant_placeholder">Заглушка для растения</string>
+    <string name="empty_plant_illustration">Иллюстрация пустого сада</string>
+    <string name="empty_reminders_illustration">Иллюстрация отсутствия напоминаний</string>
 </resources>

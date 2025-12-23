@@ -24,7 +24,8 @@ data class Reminder(
     val periodUnit: String, // "days", "weeks", "months"
     val hour: Int,
     val minute: Int,
-    val nextTriggerAt: Long
+    val nextTriggerAt: Long,
+    val isCompleted: Boolean = false
 )
 
 

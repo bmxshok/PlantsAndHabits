@@ -71,12 +71,15 @@ interface PlantDao {
     @Query("UPDATE reminders SET nextTriggerAt = :nextTriggerAt WHERE id = :reminderId")
     suspend fun updateReminderNextTrigger(reminderId: Int, nextTriggerAt: Long): Int
 
+    @Query("UPDATE reminders SET isCompleted = :isCompleted WHERE id = :reminderId")
+    suspend fun updateReminderCompleted(reminderId: Int, isCompleted: Boolean): Int
+
     @Query("SELECT * FROM reminders WHERE id = :reminderId")
     suspend fun getReminderById(reminderId: Int): Reminder?
 
     @Query(
         """
-        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt,
+        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt, r.isCompleted,
                p.name AS plantName, up.customName AS customName, up.plantType AS plantType
         FROM reminders r
         INNER JOIN user_plants up ON r.userPlantId = up.id
@@ -88,7 +91,7 @@ interface PlantDao {
 
     @Query(
         """
-        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt,
+        SELECT r.id, r.userPlantId, r.workType, r.periodValue, r.periodUnit, r.hour, r.minute, r.nextTriggerAt, r.isCompleted,
                p.name AS plantName, up.customName AS customName, up.plantType AS plantType
         FROM reminders r
         INNER JOIN user_plants up ON r.userPlantId = up.id

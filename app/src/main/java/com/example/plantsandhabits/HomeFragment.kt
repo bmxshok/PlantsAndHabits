@@ -27,6 +27,7 @@ class HomeFragment : Fragment() {
     private val originalTodayReminders = mutableListOf<ReminderWithDetails>() // Сохраняем оригинальные напоминания на сегодня
     private lateinit var sharedPreferences: SharedPreferences
     private var lastCheckedDate: String = "" // Дата последней проверки для очистки старых отметок
+    private lateinit var emptyState: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +66,8 @@ class HomeFragment : Fragment() {
             onReminderChecked(reminderId)
         }
         recyclerView.adapter = adapter
+        
+        emptyState = view.findViewById(R.id.emptyState)
 
         // Загружаем сохраненные отмеченные напоминания
         loadCheckedReminders()
@@ -119,6 +122,16 @@ class HomeFragment : Fragment() {
             // День не изменился - просто обновляем список без перезагрузки из БД
             reminders.clear()
             reminders.addAll(originalTodayReminders)
+            
+            // Показываем список или пустое состояние в зависимости от наличия напоминаний
+            if (reminders.isEmpty()) {
+                recyclerView.visibility = View.GONE
+                emptyState.visibility = View.VISIBLE
+            } else {
+                recyclerView.visibility = View.VISIBLE
+                emptyState.visibility = View.GONE
+            }
+            
             adapter.restoreCheckedState(checkedReminderIds)
             adapter.notifyDataSetChanged()
         }
@@ -200,6 +213,15 @@ class HomeFragment : Fragment() {
                 
                 android.util.Log.d("HomeFragment", "Displaying ${reminders.size} unique reminders (${checkedReminderIds.size} checked)")
                 
+                // Показываем список или пустое состояние в зависимости от наличия напоминаний
+                if (reminders.isEmpty()) {
+                    recyclerView.visibility = View.GONE
+                    emptyState.visibility = View.VISIBLE
+                } else {
+                    recyclerView.visibility = View.VISIBLE
+                    emptyState.visibility = View.GONE
+                }
+                
                 // Восстанавливаем состояние отмеченных в адаптере
                 adapter.restoreCheckedState(checkedReminderIds)
                 adapter.notifyDataSetChanged()
@@ -253,46 +275,10 @@ class HomeFragment : Fragment() {
     }
     
     private fun updateCheckedRemindersForNewDay() {
-        // Обновляем nextTriggerAt для всех отмеченных напоминаний при смене дня
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    val savedCheckedIds = sharedPreferences.getString("checked_reminder_ids", "") ?: ""
-                    if (savedCheckedIds.isNotEmpty()) {
-                        savedCheckedIds.split(",").forEach { idStr ->
-                            val reminderId = idStr.toIntOrNull() ?: return@forEach
-                            val reminder = database.plantDao().getReminderById(reminderId)
-                            if (reminder != null) {
-                                val calendar = Calendar.getInstance().apply {
-                                    set(Calendar.HOUR_OF_DAY, reminder.hour)
-                                    set(Calendar.MINUTE, reminder.minute)
-                                    set(Calendar.SECOND, 0)
-                                    set(Calendar.MILLISECOND, 0)
-                                    
-                                    // Добавляем период
-                                    when (reminder.periodUnit) {
-                                        "days" -> add(Calendar.DAY_OF_MONTH, reminder.periodValue)
-                                        "weeks" -> add(Calendar.WEEK_OF_YEAR, reminder.periodValue)
-                                        "months" -> add(Calendar.MONTH, reminder.periodValue)
-                                    }
-                                }
-                                
-                                database.plantDao().updateReminderNextTrigger(reminderId, calendar.timeInMillis)
-                                
-                                // Перепланируем уведомление
-                                val updatedReminder = reminder.copy(nextTriggerAt = calendar.timeInMillis)
-                                ReminderScheduler.cancelReminder(requireContext(), reminderId)
-                                ReminderScheduler.scheduleReminder(requireContext(), updatedReminder)
-                                
-                                android.util.Log.d("HomeFragment", "Updated reminder $reminderId for new day: nextTriggerAt=${calendar.timeInMillis}")
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("HomeFragment", "Error updating reminders for new day", e)
-            }
-        }
+        // При новой логике все напоминания создаются заранее на месяц вперёд,
+        // поэтому не нужно обновлять nextTriggerAt - просто очищаем список отмеченных
+        // при смене дня, так как это были напоминания за предыдущий день
+        android.util.Log.d("HomeFragment", "New day started - clearing checked reminders (all reminders are pre-created)")
     }
 
     private fun onReminderChecked(reminderId: Int) {
@@ -307,6 +293,18 @@ class HomeFragment : Fragment() {
                 adapter.markAsChecked(reminderId)
                 // Сохраняем в SharedPreferences
                 saveCheckedReminders()
+                
+                // Обновляем статус isCompleted в БД
+                CoroutineScope(Dispatchers.Main).launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            database.plantDao().updateReminderCompleted(reminderId, true)
+                        }
+                        android.util.Log.d("HomeFragment", "Marked reminder $reminderId as completed in database")
+                    } catch (e: Exception) {
+                        android.util.Log.e("HomeFragment", "Error updating reminder completed status", e)
+                    }
+                }
                 
                 android.util.Log.d("HomeFragment", "Marked reminder $reminderId as checked, keeping it on screen")
             }

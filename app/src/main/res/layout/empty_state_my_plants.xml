@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <!-- Картинка растения -->
+    <ImageView
+        android:id="@+id/imgEmptyPlant"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginBottom="32dp"
+        android:src="@drawable/plant"
+        android:contentDescription="@string/empty_plant_illustration"
+        android:scaleType="fitCenter" />
+
+    <!-- Текст "У вас пока нет растений" -->
+    <TextView
+        android:id="@+id/tvEmptyTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="У вас пока нет растений"
+        android:textColor="@color/dark_green"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <!-- Текст "Добавьте растения для напоминания о поливе" -->
+    <TextView
+        android:id="@+id/tvEmptyDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:text="Добавьте растения\nдля напоминания о поливе"
+        android:textColor="@color/dark_green"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp" />
+
+
+
+</LinearLayout>
+

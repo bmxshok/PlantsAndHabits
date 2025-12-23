@@ -42,6 +42,7 @@
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_green_rounded"
+        android:textSize="18dp"
         android:text="Добавить растение вручную"
         android:textColor="@color/dark_green"
         style="@style/NoTintButton"

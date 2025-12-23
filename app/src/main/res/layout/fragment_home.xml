@@ -16,13 +16,27 @@
         android:textStyle="bold"
         android:layout_marginBottom="24dp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvTodayReminders"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:scrollbars="vertical" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvTodayReminders"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:scrollbars="vertical" />
+
+        <!-- Пустое состояние -->
+        <include
+            android:id="@+id/emptyState"
+            layout="@layout/empty_state_home"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>

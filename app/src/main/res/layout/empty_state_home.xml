@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <!-- Картинка человека -->
+    <ImageView
+        android:id="@+id/imgEmptyMan"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:layout_marginBottom="-10dp"
+        android:src="@drawable/man"
+        android:contentDescription="@string/empty_reminders_illustration"
+        android:scaleType="fitCenter" />
+
+    <!-- Текст "Нет напоминаний на сегодня" -->
+    <TextView
+        android:id="@+id/tvEmptyTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="-24dp"
+        android:layout_marginBottom="8dp"
+        android:text="Нет напоминаний на сегодня"
+        android:textColor="@color/dark_green"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <!-- Дополнительный текст -->
+    <TextView
+        android:id="@+id/tvEmptyDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Отдохните и наслаждайтесь\nсвободным днём"
+        android:textColor="@color/dark_green"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp" />
+
+</LinearLayout>
+

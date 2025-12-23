@@ -9,6 +9,7 @@ data class ReminderWithDetails(
     val hour: Int,
     val minute: Int,
     val nextTriggerAt: Long,
+    val isCompleted: Boolean = false,
     val plantName: String,
     val customName: String?,
     val plantType: String?

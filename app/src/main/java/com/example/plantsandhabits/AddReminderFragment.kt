@@ -30,7 +30,15 @@ class AddReminderFragment : Fragment() {
     private lateinit var tvTimeSummary: TextView
     private lateinit var btnBack: ImageView
 
-    private val workTypes = listOf("Полив", "Пересадка", "Удобрение")
+    private val workTypes = listOf(
+        "Полив",
+        "Пересадка",
+        "Удобрение",
+        "Опрыскивание",
+        "Обрезка",
+        "Проверка вредителей",
+        "Рыхление почвы"
+    )
     private val periodUnits = listOf("день", "неделя", "месяц")
     private val periodUnitCodes = listOf("days", "weeks", "months")
 
@@ -206,48 +214,105 @@ class AddReminderFragment : Fragment() {
         val workType = workTypes[selectedWorkIndex]
         val periodUnitCode = periodUnitCodes[periodUnitIndex]
 
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, selectedHour)
-            set(Calendar.MINUTE, selectedMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            when (periodUnitCode) {
-                "days" -> add(Calendar.DAY_OF_MONTH, periodValue)
-                "weeks" -> add(Calendar.WEEK_OF_YEAR, periodValue)
-                "months" -> add(Calendar.MONTH, periodValue)
-            }
-        }
-        val nextTriggerAt = cal.timeInMillis
-
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val reminderId = withContext(Dispatchers.IO) {
-                    database.plantDao().insertReminder(
-                        Reminder(
-                            userPlantId = userPlant.userPlantId.toInt(),
-                            workType = workType,
-                            periodValue = periodValue,
-                            periodUnit = periodUnitCode,
-                            hour = selectedHour,
-                            minute = selectedMinute,
-                            nextTriggerAt = nextTriggerAt
-                        )
+                val context = requireContext()
+                val createdCount = withContext(Dispatchers.IO) {
+                    createRemindersForMonth(
+                        context = context,
+                        userPlant = userPlant,
+                        workType = workType,
+                        periodValue = periodValue,
+                        periodUnitCode = periodUnitCode,
+                        hour = selectedHour,
+                        minute = selectedMinute
                     )
                 }
                 
-                // Получаем созданное напоминание и планируем уведомление
-                withContext(Dispatchers.IO) {
-                    val reminder = database.plantDao().getReminderById(reminderId.toInt())
-                    if (reminder != null) {
-                        ReminderScheduler.scheduleReminder(requireContext(), reminder)
-                    }
-                }
-                
-                Toast.makeText(requireContext(), "Напоминание сохранено", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Создано $createdCount напоминаний на месяц вперёд", Toast.LENGTH_SHORT).show()
                 requireActivity().onBackPressed()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    /**
+     * Создаёт все напоминания на месяц вперёд на основе периода
+     */
+    private suspend fun createRemindersForMonth(
+        context: android.content.Context,
+        userPlant: UserPlantWithDetails,
+        workType: String,
+        periodValue: Int,
+        periodUnitCode: String,
+        hour: Int,
+        minute: Int
+    ): Int {
+        val now = Calendar.getInstance()
+        val endDate = Calendar.getInstance().apply {
+            add(Calendar.MONTH, 1) // Месяц вперёд
+        }
+        
+        // Вычисляем первую дату напоминания
+        val firstDate = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            
+            // Если время уже прошло сегодня, начинаем со следующего периода
+            if (timeInMillis < now.timeInMillis) {
+                when (periodUnitCode) {
+                    "days" -> add(Calendar.DAY_OF_MONTH, periodValue)
+                    "weeks" -> add(Calendar.WEEK_OF_YEAR, periodValue)
+                    "months" -> add(Calendar.MONTH, periodValue)
+                }
+            }
+        }
+        
+        val remindersToCreate = mutableListOf<Reminder>()
+        val currentDate = Calendar.getInstance().apply {
+            timeInMillis = firstDate.timeInMillis
+        }
+        
+        // Генерируем все даты напоминаний до конца месяца
+        while (currentDate.timeInMillis <= endDate.timeInMillis) {
+            remindersToCreate.add(
+                Reminder(
+                    userPlantId = userPlant.userPlantId.toInt(),
+                    workType = workType,
+                    periodValue = periodValue,
+                    periodUnit = periodUnitCode,
+                    hour = hour,
+                    minute = minute,
+                    nextTriggerAt = currentDate.timeInMillis,
+                    isCompleted = false
+                )
+            )
+            
+            // Переходим к следующей дате на основе периода
+            when (periodUnitCode) {
+                "days" -> currentDate.add(Calendar.DAY_OF_MONTH, periodValue)
+                "weeks" -> currentDate.add(Calendar.WEEK_OF_YEAR, periodValue)
+                "months" -> currentDate.add(Calendar.MONTH, periodValue)
+            }
+        }
+        
+        // Вставляем все напоминания в БД
+        var createdCount = 0
+        for (reminder in remindersToCreate) {
+            val reminderId = database.plantDao().insertReminder(reminder)
+            if (reminderId > 0) {
+                createdCount++
+                // Планируем уведомление для каждого напоминания
+                val createdReminder = database.plantDao().getReminderById(reminderId.toInt())
+                if (createdReminder != null) {
+                    ReminderScheduler.scheduleReminder(context, createdReminder)
+                }
+            }
+        }
+        
+        return createdCount
     }
 }

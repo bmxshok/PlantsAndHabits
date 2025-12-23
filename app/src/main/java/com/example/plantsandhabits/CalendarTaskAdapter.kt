@@ -13,7 +13,7 @@ import java.util.Date
 import java.util.Locale
 
 class CalendarTaskAdapter(
-    private val tasks: List<ReminderWithDetails>,
+    private var tasks: List<ReminderWithDetails>,
     private val userPlants: Map<Int, UserPlantWithDetails>
 ) : RecyclerView.Adapter<CalendarTaskAdapter.TaskViewHolder>() {
 
@@ -21,6 +21,7 @@ class CalendarTaskAdapter(
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
         private val tvPlantName: TextView = itemView.findViewById(R.id.tvPlantName)
         private val tvTaskDate: TextView = itemView.findViewById(R.id.tvTaskDate)
+        private val imgCheck: ImageView = itemView.findViewById(R.id.imgCheck)
 
         fun bind(reminder: ReminderWithDetails, date: Date) {
             val userPlant = userPlants[reminder.userPlantId]
@@ -30,6 +31,21 @@ class CalendarTaskAdapter(
             val dateFormat = SimpleDateFormat("d MMMM", Locale("ru"))
             val dateStr = dateFormat.format(date)
             tvTaskDate.text = "${reminder.workType} - $dateStr"
+
+            // Отображаем галочку в зависимости от статуса выполнения
+            // В календаре галочка только для просмотра, нельзя ставить
+            if (reminder.isCompleted) {
+                imgCheck.setImageResource(R.drawable.ic_checkbox_checked)
+                imgCheck.alpha = 0.8f // Немного приглушаем для визуального отличия
+            } else {
+                imgCheck.setImageResource(R.drawable.ic_checkbox_empty)
+                imgCheck.alpha = 0.3f // Ещё больше приглушаем для невыполненных
+            }
+            
+            // Галочка всегда неактивна в календаре - только для просмотра
+            imgCheck.isClickable = false
+            imgCheck.isFocusable = false
+            imgCheck.setOnClickListener(null)
 
             // Загружаем изображение растения
             loadPlantImage(userPlant)
@@ -69,6 +85,11 @@ class CalendarTaskAdapter(
 
     fun setSelectedDate(date: Date) {
         selectedDate = date
+        notifyDataSetChanged()
+    }
+
+    fun updateTasks(newTasks: List<ReminderWithDetails>) {
+        tasks = newTasks
         notifyDataSetChanged()
     }
 

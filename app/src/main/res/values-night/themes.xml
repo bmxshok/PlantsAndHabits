@@ -3,5 +3,8 @@
     <style name="Base.Theme.PlantsAndHabits" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Применяем кастомный шрифт Inter ко всем текстам -->
+        <item name="android:fontFamily">@font/inter_family</item>
+        <item name="fontFamily">@font/inter_family</item>
     </style>
 </resources>

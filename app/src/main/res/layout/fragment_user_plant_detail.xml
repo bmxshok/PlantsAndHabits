@@ -107,11 +107,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:gravity="center"
                     android:text="Diefrenbachia"
                     android:textColor="@color/light_gray"
                     android:textSize="16sp"
-                    android:textStyle="italic"
-                    android:gravity="center" />
+                    android:textStyle="italic" />
 
             </LinearLayout>
 

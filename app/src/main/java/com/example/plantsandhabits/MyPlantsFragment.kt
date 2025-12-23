@@ -29,6 +29,8 @@ class MyPlantsFragment : Fragment() {
     private lateinit var btnReminders: Button
     private lateinit var btnAddAction: Button
     private lateinit var containerContent: FrameLayout
+    private lateinit var emptyState: View
+
     
     private var isPlantsTab = true
     private var remindersFragment: RemindersFragment? = null
@@ -71,11 +73,14 @@ class MyPlantsFragment : Fragment() {
         btnReminders = view.findViewById(R.id.btnReminders)
         btnAddAction = view.findViewById(R.id.btnAddAction)
         containerContent = view.findViewById(R.id.containerContent)
+        emptyState = view.findViewById(R.id.emptyState)
+
 
         setupTabs()
         setupRecyclerView(view)
         loadUserPlants()
         showPlantsTab()
+
         
         Log.d("MyPlantsFragment", "Fragment created, loading user plants...")
     }
@@ -115,9 +120,17 @@ class MyPlantsFragment : Fragment() {
         // Обновляем текст кнопки действия
         btnAddAction.text = "Добавить растение"
         
-        // Показываем RecyclerView с растениями, скрываем контейнер с напоминаниями
-        recyclerView.visibility = View.VISIBLE
+        // Показываем RecyclerView с растениями или пустое состояние, скрываем контейнер с напоминаниями
         containerContent.visibility = View.GONE
+        
+        // Показываем список или пустое состояние в зависимости от наличия растений
+        if (userPlants.isEmpty()) {
+            recyclerView.visibility = View.GONE
+            emptyState.visibility = View.VISIBLE
+        } else {
+            recyclerView.visibility = View.VISIBLE
+            emptyState.visibility = View.GONE
+        }
     }
 
     private fun showRemindersTab() {
@@ -162,6 +175,18 @@ class MyPlantsFragment : Fragment() {
                 userPlants.clear()
                 userPlants.addAll(plants)
                 adapter.notifyDataSetChanged()
+                
+                // Обновляем видимость пустого состояния и списка
+                if (isPlantsTab) {
+                    if (plants.isEmpty()) {
+                        recyclerView.visibility = View.GONE
+                        emptyState.visibility = View.VISIBLE
+                    } else {
+                        recyclerView.visibility = View.VISIBLE
+                        emptyState.visibility = View.GONE
+                    }
+                }
+                
                 if (plants.isEmpty()) {
                     Log.d("MyPlantsFragment", "No plants in garden yet")
                 }

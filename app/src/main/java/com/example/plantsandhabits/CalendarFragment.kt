@@ -133,6 +133,15 @@ class CalendarFragment : Fragment() {
         rvTasks.adapter = calendarTaskAdapter
     }
 
+    override fun onResume() {
+        super.onResume()
+        // При возврате на экран проверяем и продлеваем напоминания
+        CoroutineScope(Dispatchers.IO).launch {
+            ReminderManager.rescheduleAllReminders(requireContext())
+        }
+        loadTasksForSelectedDate()
+    }
+
     private fun updateCalendar() {
         val days = mutableListOf<CalendarDay>()
 
@@ -229,6 +238,7 @@ class CalendarFragment : Fragment() {
                 endOfDay.set(Calendar.SECOND, 59)
                 endOfDay.set(Calendar.MILLISECOND, 999)
                 
+                // Получаем все напоминания для выбранной даты (включая прошедшие)
                 val reminders = withContext(Dispatchers.IO) {
                     database.plantDao().getRemindersForDate(
                         startOfDay.timeInMillis,

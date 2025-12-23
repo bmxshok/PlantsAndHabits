@@ -1,6 +1,9 @@
 package com.example.plantsandhabits
 
+import android.content.ContentValues
 import android.content.Context
+import android.content.SharedPreferences
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -9,11 +12,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 @Database(
     entities = [Category::class, Plant::class, UserPlant::class, Reminder::class, PlantPhoto::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,7 +34,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "plants_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(AppDatabaseCallback(context))
                     .build()
                 INSTANCE = instance
@@ -80,6 +84,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE reminders ADD COLUMN isCompleted INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private class AppDatabaseCallback(
             private val context: Context
         ) : RoomDatabase.Callback() {
@@ -87,19 +97,35 @@ abstract class AppDatabase : RoomDatabase() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 // Этот метод вызывается ТОЛЬКО при первом создании БД
-                CoroutineScope(Dispatchers.IO).launch {
-                    populateDatabase()
-                }
+                // Используем прямой SQL для вставки данных, чтобы избежать проблем с getDatabase()
+                populateDatabaseDirectly(db)
+                // Помечаем, что первичная инициализация выполнена
+                markDatabaseInitialized()
             }
 
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 // Этот метод вызывается при каждом открытии БД
                 // Проверяем и добавляем недостающие категории и растения
+                // НО только если БД уже была инициализирована (не первый запуск)
                 CoroutineScope(Dispatchers.IO).launch {
-                    ensureCategoriesExist()
-                    ensurePlantsExist()
+                    if (isDatabaseInitialized()) {
+                        ensureCategoriesExist()
+                        ensurePlantsExist()
+                    }
                 }
+            }
+
+            private fun getSharedPreferences(): SharedPreferences {
+                return context.getSharedPreferences("database_prefs", Context.MODE_PRIVATE)
+            }
+
+            private fun markDatabaseInitialized() {
+                getSharedPreferences().edit().putBoolean("database_initialized", true).apply()
+            }
+
+            private fun isDatabaseInitialized(): Boolean {
+                return getSharedPreferences().getBoolean("database_initialized", false)
             }
 
             /**
@@ -530,6 +556,80 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
             }
+
+            /**
+             * Прямая вставка данных через SQL при первом создании БД
+             */
+            private fun populateDatabaseDirectly(db: SupportSQLiteDatabase) {
+                // Вставляем категории используя ContentValues для безопасности
+                val categories = listOf(
+                    Pair("Цветущие", "ic_flowering"),
+                    Pair("Лиственные", "ic_leafy"),
+                    Pair("Суккуленты", "ic_succulent"),
+                    Pair("Съедобные", "ic_edible"),
+                    Pair("Папоротники", "ic_fern")
+                )
+                
+                categories.forEach { (name, imageResName) ->
+                    val values = ContentValues().apply {
+                        put("name", name)
+                        put("imageResName", imageResName)
+                    }
+                    db.insert("categories", SQLiteDatabase.CONFLICT_REPLACE, values)
+                }
+                
+                // Получаем ID категорий для использования при создании растений
+                val categoryIds = mutableMapOf<String, Int>()
+                val cursor = db.query("SELECT id, name FROM categories")
+                cursor.use {
+                    while (it.moveToNext()) {
+                        val id = it.getInt(0)
+                        val name = it.getString(1)
+                        categoryIds[name] = id
+                    }
+                }
+                
+                val floweringCategoryId = categoryIds["Цветущие"] ?: 0
+                val leafyCategoryId = categoryIds["Лиственные"] ?: 0
+                val succulentCategoryId = categoryIds["Суккуленты"] ?: 0
+                val edibleCategoryId = categoryIds["Съедобные"] ?: 0
+                val fernCategoryId = categoryIds["Папоротники"] ?: 0
+                
+                // Вставляем растения
+                val plants = getAllRequiredPlants(
+                    floweringCategoryId,
+                    leafyCategoryId,
+                    succulentCategoryId,
+                    edibleCategoryId,
+                    fernCategoryId
+                )
+                
+                plants.forEach { plant ->
+                    val values = ContentValues().apply {
+                        put("categoryId", plant.categoryId)
+                        put("name", plant.name)
+                        put("scientificName", plant.scientificName)
+                        put("description", plant.description)
+                        put("careTips", plant.careTips)
+                        put("imageResName", plant.imageResName)
+                    }
+                    db.insert("plants", SQLiteDatabase.CONFLICT_REPLACE, values)
+                }
+                
+                // Добавляем placeholder для ручных растений
+                if (floweringCategoryId != 0) {
+                    val values = ContentValues().apply {
+                        put("categoryId", floweringCategoryId)
+                        put("name", "_MANUAL_PLACEHOLDER_")
+                        put("scientificName", null as String?)
+                        put("description", "")
+                        put("careTips", "")
+                        put("imageResName", "sample_category")
+                    }
+                    db.insert("plants", SQLiteDatabase.CONFLICT_REPLACE, values)
+                }
+            }
+
 
             private suspend fun populateDatabase() {
                 // Используем ensurePlantsExist для консистентности

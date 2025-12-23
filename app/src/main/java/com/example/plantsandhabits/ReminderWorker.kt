@@ -38,25 +38,8 @@ class ReminderWorker(
                         )
                     }
 
-                    // Обновляем nextTriggerAt для следующего срабатывания
-                    val cal = Calendar.getInstance().apply {
-                        timeInMillis = reminder.nextTriggerAt
-                        when (reminder.periodUnit) {
-                            "days" -> add(Calendar.DAY_OF_MONTH, reminder.periodValue)
-                            "weeks" -> add(Calendar.WEEK_OF_YEAR, reminder.periodValue)
-                            "months" -> add(Calendar.MONTH, reminder.periodValue)
-                        }
-                    }
-                    val nextTriggerAt = cal.timeInMillis
-
-                    // Обновляем напоминание в БД
-                    database.plantDao().updateReminderNextTrigger(reminder.id, nextTriggerAt)
-                    
-                    // Перепланируем следующее уведомление
-                    val updatedReminder = database.plantDao().getReminderById(reminder.id)
-                    if (updatedReminder != null) {
-                        ReminderScheduler.scheduleReminder(applicationContext, updatedReminder)
-                    }
+                    // Напоминание уже создано как отдельный экземпляр, 
+                    // не нужно обновлять или перепланировать - просто показываем уведомление
                 }
             }
             

@@ -57,9 +57,18 @@ class RemindersFragment : Fragment() {
     private fun loadReminders() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val reminders = withContext(Dispatchers.IO) {
+                val allReminders = withContext(Dispatchers.IO) {
                     database.plantDao().getRemindersWithDetails()
                 }
+                
+                // Фильтруем прошедшие напоминания - оставляем только будущие и сегодняшние
+                val now = System.currentTimeMillis()
+                val reminders = allReminders.filter { reminder ->
+                    reminder.nextTriggerAt >= now
+                }
+                
+                // Сортируем напоминания по дате по возрастанию (ближайшие сверху)
+                val sortedReminders = reminders.sortedBy { it.nextTriggerAt }
                 
                 val userPlants = withContext(Dispatchers.IO) {
                     database.plantDao().getUserPlantsWithDetails()
@@ -69,19 +78,25 @@ class RemindersFragment : Fragment() {
                 
                 val dateFormat = SimpleDateFormat("dd.MM.yy", Locale.getDefault())
                 
-                // Группируем по датам
-                val groupedByDate = reminders.groupBy { 
+                // Группируем по датам (уже отсортированные)
+                val groupedByDate = sortedReminders.groupBy { 
                     dateFormat.format(Date(it.nextTriggerAt))
-                }.toSortedMap()
+                }
+                
+                // Сортируем группы по дате (по nextTriggerAt первого элемента в группе)
+                val sortedGroups = groupedByDate.toList().sortedBy { (_, remindersInGroup) ->
+                    remindersInGroup.minOfOrNull { it.nextTriggerAt } ?: Long.MAX_VALUE
+                }
                 
                 reminderItems.clear()
                 
-                groupedByDate.forEach { (date, dateReminders) ->
+                sortedGroups.forEach { (date, dateReminders) ->
                     // Добавляем заголовок даты
                     reminderItems.add(ReminderListItem.DateHeader(date))
                     
-                    // Добавляем напоминания для этой даты
-                    dateReminders.forEach { reminder ->
+                    // Добавляем напоминания для этой даты (уже отсортированные по времени)
+                    val sortedDateReminders = dateReminders.sortedBy { it.nextTriggerAt }
+                    sortedDateReminders.forEach { reminder ->
                         val userPlant = userPlantsMap[reminder.userPlantId]
                         reminderItems.add(ReminderListItem.Reminder(reminder, userPlant))
                     }
