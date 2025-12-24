@@ -90,10 +90,14 @@ object TimelapseCreator {
             var encoderOutputBufferInfo = MediaCodec.BufferInfo()
 
             // Загружаем все фотографии заранее с сохранением соотношения сторон
+            // Нормализуем все bitmap'ы до одинакового размера для предотвращения дёргания
             val bitmaps = mutableListOf<Bitmap?>()
             for (photoPath in photoPaths) {
                 val bitmap = loadAndScaleBitmapPreservingAspect(photoPath, videoWidth, videoHeight)
-                bitmaps.add(bitmap)
+                // Нормализуем bitmap до фиксированного размера для стабильности
+                val normalizedBitmap = normalizeBitmapSize(bitmap, videoWidth, videoHeight)
+                bitmap?.recycle() // Освобождаем исходный bitmap
+                bitmaps.add(normalizedBitmap)
             }
 
             // Вычисляем общее количество кадров
@@ -124,31 +128,16 @@ object TimelapseCreator {
                         renderFrameToSurface(inputSurface!!, currentBitmap, videoWidth, videoHeight, 1.0f)
                     }
 
-                    // Кодируем кадр - дренируем encoder после рендеринга
-                    var outputBufferIndex: Int
-                    do {
-                        outputBufferIndex = encoder.dequeueOutputBuffer(encoderOutputBufferInfo, 0) // Не ждем, просто проверяем
-                        if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                            break
-                        } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                            val newTrackIndex = muxer.addTrack(encoder.outputFormat)
-                            if (videoTrackIndex < 0 && newTrackIndex >= 0) {
-                                videoTrackIndex = newTrackIndex
-                                muxer.start()
-                            }
-                        } else if (outputBufferIndex >= 0) {
-                            val outputBuffer = encoder.getOutputBuffer(outputBufferIndex)
-                            if (outputBuffer != null && (encoderOutputBufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
-                                // Используем правильное время для каждого кадра
-                                val frameTimeUs = (frameIndex * 1000000L) / FRAME_RATE
-                                encoderOutputBufferInfo.presentationTimeUs = frameTimeUs
-                                if (videoTrackIndex >= 0) {
-                                    muxer.writeSampleData(videoTrackIndex, outputBuffer, encoderOutputBufferInfo)
-                                }
-                            }
-                            encoder.releaseOutputBuffer(outputBufferIndex, false)
+                    // Вычисляем время кадра
+                    val frameTimeUs = (frameIndex * 1000000L) / FRAME_RATE
+                    
+                    // Дренируем encoder с правильной синхронизацией
+                    drainEncoderFrame(encoder, muxer, encoderOutputBufferInfo, videoTrackIndex, frameTimeUs) { newTrackIndex ->
+                        if (videoTrackIndex < 0 && newTrackIndex >= 0) {
+                            videoTrackIndex = newTrackIndex
+                            muxer.start()
                         }
-                    } while (outputBufferIndex >= 0)
+                    }
 
                     frameIndex++
                     if (frameIndex % FRAME_RATE == 0) { // Обновляем прогресс раз в секунду
@@ -250,6 +239,48 @@ object TimelapseCreator {
         }
     }
 
+    /**
+     * Дренирует encoder для одного кадра с правильной синхронизацией
+     */
+    private fun drainEncoderFrame(
+        encoder: MediaCodec,
+        muxer: MediaMuxer,
+        bufferInfo: MediaCodec.BufferInfo,
+        trackIndex: Int,
+        presentationTimeUs: Long,
+        onTrackAdded: ((Int) -> Unit)?
+    ) {
+        var outputBufferIndex: Int
+        var drainedCount = 0
+        val maxDrainAttempts = 10 // Ограничиваем количество попыток для одного кадра
+        
+        do {
+            outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC)
+            when {
+                outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> {
+                    // Нет доступных буферов - это нормально, выходим
+                    break
+                }
+                outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                    val newTrackIndex = muxer.addTrack(encoder.outputFormat)
+                    onTrackAdded?.invoke(newTrackIndex)
+                }
+                outputBufferIndex >= 0 -> {
+                    val outputBuffer = encoder.getOutputBuffer(outputBufferIndex)
+                    if (outputBuffer != null && (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
+                        // Устанавливаем правильное время для кадра
+                        bufferInfo.presentationTimeUs = presentationTimeUs
+                        if (trackIndex >= 0) {
+                            muxer.writeSampleData(trackIndex, outputBuffer, bufferInfo)
+                        }
+                    }
+                    encoder.releaseOutputBuffer(outputBufferIndex, false)
+                    drainedCount++
+                }
+            }
+        } while (outputBufferIndex >= 0 && drainedCount < maxDrainAttempts)
+    }
+
     private fun drainEncoder(
         encoder: MediaCodec,
         muxer: MediaMuxer,
@@ -337,6 +368,44 @@ object TimelapseCreator {
     }
     
     /**
+     * Нормализует bitmap до фиксированного размера, центрируя изображение
+     * Это предотвращает дёргание при смене кадров разного разрешения
+     */
+    private fun normalizeBitmapSize(bitmap: Bitmap?, targetWidth: Int, targetHeight: Int): Bitmap? {
+        if (bitmap == null) return null
+        
+        // Если bitmap уже нужного размера, возвращаем его
+        if (bitmap.width == targetWidth && bitmap.height == targetHeight) {
+            return bitmap
+        }
+        
+        try {
+            // Создаем новый bitmap фиксированного размера
+            val normalizedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(normalizedBitmap)
+            
+            // Очищаем canvas черным цветом
+            canvas.drawRGB(0, 0, 0)
+            
+            // Вычисляем позицию для центрирования
+            val left = (targetWidth - bitmap.width) / 2f
+            val top = (targetHeight - bitmap.height) / 2f
+            
+            // Рисуем bitmap по центру с высоким качеством
+            val paint = android.graphics.Paint().apply {
+                isFilterBitmap = true
+                isAntiAlias = true
+            }
+            canvas.drawBitmap(bitmap, left, top, paint)
+            
+            return normalizedBitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "Error normalizing bitmap size", e)
+            return bitmap
+        }
+    }
+    
+    /**
      * Загружает и масштабирует bitmap с сохранением соотношения сторон
      * Изображение центрируется с черными полосами (letterbox/pillarbox) если нужно
      */
@@ -389,19 +458,39 @@ object TimelapseCreator {
 
     private fun renderFrameToSurface(surface: Surface, bitmap: Bitmap, width: Int, height: Int, alpha: Float = 1.0f) {
         try {
-            val canvas = surface.lockCanvas(null)
+            val canvas = surface.lockHardwareCanvas()
             canvas?.let {
-                // Очищаем canvas
-                it.drawRGB(0, 0, 0)
-                // Устанавливаем прозрачность
-                val paint = android.graphics.Paint().apply {
-                    this.alpha = (alpha * 255).toInt()
+                try {
+                    // Очищаем canvas
+                    it.drawRGB(0, 0, 0)
+                    // Устанавливаем прозрачность
+                    val paint = android.graphics.Paint().apply {
+                        this.alpha = (alpha * 255).toInt()
+                        isFilterBitmap = true // Включаем фильтрацию для плавности
+                        isAntiAlias = true // Включаем сглаживание
+                    }
+                    // Bitmap уже нормализован до размера width x height, рисуем с (0, 0)
+                    it.drawBitmap(bitmap, 0f, 0f, paint)
+                } finally {
+                    surface.unlockCanvasAndPost(it)
                 }
-                // Рисуем bitmap по центру
-                val left = (width - bitmap.width) / 2f
-                val top = (height - bitmap.height) / 2f
-                it.drawBitmap(bitmap, left, top, paint)
-                surface.unlockCanvasAndPost(it)
+            } ?: run {
+                // Fallback на обычный canvas если hardware canvas недоступен
+                val canvas = surface.lockCanvas(null)
+                canvas?.let {
+                    try {
+                        it.drawRGB(0, 0, 0)
+                        val paint = android.graphics.Paint().apply {
+                            this.alpha = (alpha * 255).toInt()
+                            isFilterBitmap = true
+                            isAntiAlias = true
+                        }
+                        // Bitmap уже нормализован до размера width x height, рисуем с (0, 0)
+                        it.drawBitmap(bitmap, 0f, 0f, paint)
+                    } finally {
+                        surface.unlockCanvasAndPost(it)
+                    }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error rendering frame to surface", e)
@@ -421,27 +510,54 @@ object TimelapseCreator {
         height: Int
     ) {
         try {
-            val canvas = surface.lockCanvas(null)
+            val canvas = surface.lockHardwareCanvas()
             canvas?.let {
-                // Очищаем canvas
-                it.drawRGB(0, 0, 0)
-                
-                val left = (width - currentBitmap.width) / 2f
-                val top = (height - currentBitmap.height) / 2f
-                
-                // Рисуем текущую фотографию с fade out
-                val currentPaint = android.graphics.Paint().apply {
-                    alpha = ((1.0f - fadeProgress) * 255).toInt()
+                try {
+                    // Очищаем canvas
+                    it.drawRGB(0, 0, 0)
+                    
+                    // Bitmap'ы уже нормализованы до размера width x height, рисуем с (0, 0)
+                    // Рисуем текущую фотографию с fade out
+                    val currentPaint = android.graphics.Paint().apply {
+                        alpha = ((1.0f - fadeProgress) * 255).toInt()
+                        isFilterBitmap = true
+                        isAntiAlias = true
+                    }
+                    it.drawBitmap(currentBitmap, 0f, 0f, currentPaint)
+                    
+                    // Рисуем следующую фотографию с fade in
+                    val nextPaint = android.graphics.Paint().apply {
+                        alpha = (fadeProgress * 255).toInt()
+                        isFilterBitmap = true
+                        isAntiAlias = true
+                    }
+                    it.drawBitmap(nextBitmap, 0f, 0f, nextPaint)
+                } finally {
+                    surface.unlockCanvasAndPost(it)
                 }
-                it.drawBitmap(currentBitmap, left, top, currentPaint)
-                
-                // Рисуем следующую фотографию с fade in
-                val nextPaint = android.graphics.Paint().apply {
-                    alpha = (fadeProgress * 255).toInt()
+            } ?: run {
+                // Fallback на обычный canvas
+                val canvas = surface.lockCanvas(null)
+                canvas?.let {
+                    try {
+                        it.drawRGB(0, 0, 0)
+                        // Bitmap'ы уже нормализованы до размера width x height, рисуем с (0, 0)
+                        val currentPaint = android.graphics.Paint().apply {
+                            alpha = ((1.0f - fadeProgress) * 255).toInt()
+                            isFilterBitmap = true
+                            isAntiAlias = true
+                        }
+                        it.drawBitmap(currentBitmap, 0f, 0f, currentPaint)
+                        val nextPaint = android.graphics.Paint().apply {
+                            alpha = (fadeProgress * 255).toInt()
+                            isFilterBitmap = true
+                            isAntiAlias = true
+                        }
+                        it.drawBitmap(nextBitmap, 0f, 0f, nextPaint)
+                    } finally {
+                        surface.unlockCanvasAndPost(it)
+                    }
                 }
-                it.drawBitmap(nextBitmap, left, top, nextPaint)
-                
-                surface.unlockCanvasAndPost(it)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error rendering fade transition", e)

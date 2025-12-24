@@ -276,7 +276,8 @@ class AddPlantFormFragment : Fragment() {
                 if (userPlantId > 0) {
                     Toast.makeText(requireContext(), "Растение успешно добавлено", Toast.LENGTH_SHORT).show()
                     Log.d("AddPlantFormFragment", "Plant saved with id: $userPlantId")
-                    requireActivity().onBackPressed()
+                    // Переходим на экран "Мой сад" вместо возврата назад
+                    navigateToMyGarden()
                 } else {
                     Toast.makeText(requireContext(), "Ошибка при сохранении растения", Toast.LENGTH_SHORT).show()
                 }
@@ -314,6 +315,18 @@ class AddPlantFormFragment : Fragment() {
             Log.e("AddPlantFormFragment", "Error saving image", e)
             null
         }
+    }
+    
+    /**
+     * Переходит на экран "Мой сад" в MainActivity
+     */
+    private fun navigateToMyGarden() {
+        val intent = Intent(requireContext(), MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra("show_my_garden", true)
+        }
+        startActivity(intent)
+        requireActivity().finish()
     }
 }
 
