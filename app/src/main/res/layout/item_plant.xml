@@ -45,8 +45,8 @@
             <!-- Заглушка с листиком (показывается когда фото нет) -->
             <ImageView
                 android:id="@+id/imgPlaceholder"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_leaf"
                 android:contentDescription="@string/plant_placeholder"

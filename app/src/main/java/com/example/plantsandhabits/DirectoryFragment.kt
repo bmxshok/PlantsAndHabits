@@ -40,10 +40,21 @@ class DirectoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Добавляем отступы для статус-бара
+        // Сохраняем исходные отступы из layout
+        val originalPaddingTop = view.paddingTop
+        val originalPaddingLeft = view.paddingLeft
+        val originalPaddingRight = view.paddingRight
+        val originalPaddingBottom = view.paddingBottom
+
+        // Добавляем отступы для статус-бара (используем исходные значения, чтобы избежать накопления)
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(v.paddingLeft, v.paddingTop + systemBars.top, v.paddingRight, v.paddingBottom)
+            v.setPadding(
+                originalPaddingLeft,
+                originalPaddingTop + systemBars.top,
+                originalPaddingRight,
+                originalPaddingBottom
+            )
             insets
         }
 

@@ -19,6 +19,7 @@ class UserPlantAdapter(
     inner class UserPlantViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imgPlant: ImageView = itemView.findViewById(R.id.imgPlant)
         private val imgPlaceholder: ImageView = itemView.findViewById(R.id.imgPlaceholder)
+        private val containerPhoto: android.view.ViewGroup = itemView.findViewById(R.id.containerPhoto)
         private val tvPlantName: TextView = itemView.findViewById(R.id.tvPlantName)
         private val tvPlantDescription: TextView = itemView.findViewById(R.id.tvScientificName)
 
@@ -40,10 +41,16 @@ class UserPlantAdapter(
             val hasCustomImage = !userPlant.customImage.isNullOrEmpty() && 
                                  File(userPlant.customImage).exists()
             
+            // Проверяем, является ли это ручным растением (созданным вручную)
+            val isManualPlant = !userPlant.plantType.isNullOrEmpty() || 
+                               userPlant.plant.name == "_MANUAL_PLACEHOLDER_"
+            
             if (hasCustomImage) {
                 // Загружаем кастомное изображение
                 imgPlaceholder.visibility = View.GONE
                 imgPlant.visibility = View.VISIBLE
+                // Восстанавливаем зелёный фон для фото
+                containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
                 
                 imgPlant.load(File(userPlant.customImage)) {
                     size(Size(160, 160)) // Загружаем в нужном размере для оптимизации
@@ -53,11 +60,18 @@ class UserPlantAdapter(
                             // Если ошибка загрузки, показываем заглушку
                             imgPlaceholder.visibility = View.VISIBLE
                             imgPlant.visibility = View.GONE
+                            // Оставляем зелёный фон с иконкой листика
+                            containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
                         }
                     )
                 }
+            } else if (isManualPlant) {
+                // Для ручных растений без фото всегда показываем иконку листика в зелёном квадрате
+                imgPlant.visibility = View.GONE
+                imgPlaceholder.visibility = View.VISIBLE
+                containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
             } else {
-                // Пытаемся загрузить стандартное изображение
+                // Для обычных растений пытаемся загрузить стандартное изображение
                 val drawableId = try {
                     ResourceHelper.getDrawableId(itemView.context, userPlant.plant.imageResName)
                 } catch (e: Exception) {
@@ -68,6 +82,8 @@ class UserPlantAdapter(
                     // Есть стандартное изображение
                     imgPlaceholder.visibility = View.GONE
                     imgPlant.visibility = View.VISIBLE
+                    // Восстанавливаем зелёный фон для фото
+                    containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
                     imgPlant.load(drawableId) {
                         size(Size(160, 160))
                         crossfade(true)
@@ -76,13 +92,16 @@ class UserPlantAdapter(
                                 // Если ошибка загрузки, показываем заглушку
                                 imgPlaceholder.visibility = View.VISIBLE
                                 imgPlant.visibility = View.GONE
+                                // Оставляем зелёный фон с иконкой листика
+                                containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
                             }
                         )
                     }
                 } else {
-                    // Нет изображения - показываем красивую заглушку с листиком
+                    // Нет изображения - показываем иконку листика в зелёном квадрате
                     imgPlant.visibility = View.GONE
                     imgPlaceholder.visibility = View.VISIBLE
+                    containerPhoto.setBackgroundResource(R.drawable.bg_plant_photo_container)
                 }
             }
         }

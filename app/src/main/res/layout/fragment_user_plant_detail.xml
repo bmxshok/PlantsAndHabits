@@ -62,7 +62,7 @@
         android:layout_width="0dp"
         android:layout_height="280dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/sample_category"
+        android:background="@color/light_green"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

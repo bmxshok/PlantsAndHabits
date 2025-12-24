@@ -61,10 +61,15 @@ class AddPlantFormFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Добавляем отступы для статус-бара
+        // Добавляем отступы для статус-бара (без фиксации, чтобы клавиатура могла работать)
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(v.paddingLeft, v.paddingTop + systemBars.top, v.paddingRight, v.paddingBottom)
+            v.setPadding(
+                v.paddingLeft,
+                systemBars.top,
+                v.paddingRight,
+                v.paddingBottom
+            )
             insets
         }
 
@@ -73,6 +78,7 @@ class AddPlantFormFragment : Fragment() {
         val etPlantType = view.findViewById<TextInputEditText>(R.id.etPlantType)
         val etPlantName = view.findViewById<TextInputEditText>(R.id.etPlantName)
         val btnSavePlant = view.findViewById<Button>(R.id.btnSavePlant)
+        val scrollView = view.findViewById<androidx.core.widget.NestedScrollView>(R.id.scrollView)
 
         btnBack.setOnClickListener {
             requireActivity().onBackPressed()
@@ -84,6 +90,91 @@ class AddPlantFormFragment : Fragment() {
 
         btnSavePlant.setOnClickListener {
             savePlant(view)
+        }
+        
+        // Настройка перехода между полями через клавиатуру
+        etPlantType.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
+                etPlantName.requestFocus()
+                true
+            } else {
+                false
+            }
+        }
+        
+        etPlantName.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                etPlantName.clearFocus()
+                // Скрываем клавиатуру
+                val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etPlantName.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Автоматическая прокрутка к полю при фокусе, чтобы клавиатура не перекрывала
+        // Используем простой и надёжный метод requestRectangleOnScreen
+        etPlantType.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                // Небольшая задержка для того, чтобы клавиатура успела открыться
+                scrollView.postDelayed({
+                    val scrollBounds = android.graphics.Rect()
+                    scrollView.getHitRect(scrollBounds)
+                    if (!v.getLocalVisibleRect(scrollBounds)) {
+                        // Прокручиваем так, чтобы поле было видно с отступом сверху
+                        val location = IntArray(2)
+                        v.getLocationInWindow(location)
+                        val scrollY = location[1] - 200 // Отступ сверху
+                        if (scrollY > 0) {
+                            scrollView.smoothScrollTo(0, scrollY)
+                        }
+                    }
+                }, 300)
+            }
+        }
+
+        etPlantName.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                // Небольшая задержка для того, чтобы клавиатура успела открыться
+                scrollView.postDelayed({
+                    val scrollBounds = android.graphics.Rect()
+                    scrollView.getHitRect(scrollBounds)
+                    if (!v.getLocalVisibleRect(scrollBounds)) {
+                        // Прокручиваем так, чтобы поле было видно с отступом сверху
+                        val location = IntArray(2)
+                        v.getLocationInWindow(location)
+                        val scrollY = location[1] - 200 // Отступ сверху
+                        if (scrollY > 0) {
+                            scrollView.smoothScrollTo(0, scrollY)
+                        }
+                    }
+                }, 300)
+            }
+        }
+        
+        // Дополнительная обработка через ViewTreeObserver для отслеживания изменений клавиатуры
+        val rootView = view.rootView
+        rootView.viewTreeObserver.addOnGlobalLayoutListener {
+            val rect = android.graphics.Rect()
+            rootView.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = rootView.height
+            val keypadHeight = screenHeight - rect.bottom
+            
+            if (keypadHeight > screenHeight * 0.15) { // Клавиатура открыта
+                val focusedView = requireActivity().currentFocus
+                if (focusedView != null && (focusedView == etPlantType || focusedView == etPlantName)) {
+                    scrollView.postDelayed({
+                        val location = IntArray(2)
+                        focusedView.getLocationInWindow(location)
+                        val scrollY = location[1] - 200 // Отступ сверху
+                        if (scrollY > 0) {
+                            scrollView.smoothScrollTo(0, scrollY)
+                        }
+                    }, 100)
+                }
+            }
         }
     }
 

@@ -210,10 +210,12 @@ class UserPlantDetailFragment : Fragment() {
 
         // Научное название (может быть null)
         val tvScientificName = view.findViewById<TextView>(R.id.tvScientificName)
-        if (plant.scientificName.isNullOrEmpty()) {
+        // Для ручных растений показываем plantType, для обычных - scientificName
+        val textToShow = userPlantWithDetails.plantType ?: plant.scientificName
+        if (textToShow.isNullOrEmpty()) {
             tvScientificName.visibility = View.GONE
         } else {
-            tvScientificName.text = plant.scientificName
+            tvScientificName.text = textToShow
             tvScientificName.visibility = View.VISIBLE
         }
         
@@ -267,11 +269,34 @@ class UserPlantDetailFragment : Fragment() {
                 }
             }
             
+            // Если кастомного изображения нет, проверяем стандартное изображение
+            // Для ручных растений (с plantType) без фото показываем filler_plant.png
+            if (userPlantWithDetails.plantType != null && userPlantWithDetails.customImage.isNullOrEmpty()) {
+                try {
+                    imageView.setImageResource(R.drawable.filler_plant)
+                    Log.d("UserPlantDetail", "No photo for manual plant, showing filler_plant")
+                } catch (e: Exception) {
+                    // Если filler_plant.png не найден, используем иконку листика как fallback
+                    imageView.setImageResource(R.drawable.ic_leaf)
+                    Log.w("UserPlantDetail", "filler_plant.png not found, using ic_leaf as fallback")
+                }
+                return
+            }
+            
             // Если кастомного изображения нет, загружаем стандартное
             loadDefaultImage(view, userPlantWithDetails.plant.imageResName)
         } catch (e: Exception) {
             Log.e("UserPlantDetail", "Error loading plant image", e)
-            imageView.setImageResource(R.drawable.sample_category)
+            // При ошибке для ручных растений показываем filler_plant.png
+            if (userPlantWithDetails.plantType != null) {
+                try {
+                    imageView.setImageResource(R.drawable.filler_plant)
+                } catch (ex: Exception) {
+                    imageView.setImageResource(R.drawable.ic_leaf)
+                }
+            } else {
+                imageView.setImageResource(R.drawable.sample_category)
+            }
         }
     }
 
@@ -283,12 +308,23 @@ class UserPlantDetailFragment : Fragment() {
                 imageView.setImageResource(drawableId)
                 Log.d("UserPlantDetail", "Loaded default image: $imageResName")
             } else {
-                imageView.setImageResource(R.drawable.sample_category)
-                Log.w("UserPlantDetail", "Image not found: $imageResName, using default")
+                // Если стандартного изображения нет, для ручных растений показываем filler_plant.png
+                if (userPlantWithDetails.plantType != null) {
+                    try {
+                        imageView.setImageResource(R.drawable.filler_plant)
+                        Log.w("UserPlantDetail", "Image not found: $imageResName, using filler_plant for manual plant")
+                    } catch (e: Exception) {
+                        imageView.setImageResource(R.drawable.ic_leaf)
+                        Log.w("UserPlantDetail", "filler_plant.png not found, using ic_leaf")
+                    }
+                } else {
+                    imageView.setImageResource(R.drawable.ic_leaf)
+                    Log.w("UserPlantDetail", "Image not found: $imageResName, using leaf icon")
+                }
             }
         } catch (e: Exception) {
             Log.e("UserPlantDetail", "Error loading default image", e)
-            imageView.setImageResource(R.drawable.sample_category)
+            imageView.setImageResource(R.drawable.ic_leaf)
         }
     }
 
