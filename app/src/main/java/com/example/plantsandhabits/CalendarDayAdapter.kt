@@ -14,9 +14,10 @@ class CalendarDayAdapter(
 
     inner class DayViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvDay: TextView = itemView.findViewById(R.id.tvDay)
+        private val dotIndicator: View = itemView.findViewById(R.id.dotIndicator)
 
         fun bind(day: CalendarDay) {
-            android.util.Log.d("CalendarDayAdapter", "Binding day: ${day.dayNumber}, isSelected: ${day.isSelected}")
+            android.util.Log.d("CalendarDayAdapter", "Binding day: ${day.dayNumber}, isSelected: ${day.isSelected}, hasReminders: ${day.hasReminders}")
             if (day.dayNumber > 0) {
                 tvDay.text = day.dayNumber.toString()
                 tvDay.visibility = View.VISIBLE
@@ -33,13 +34,27 @@ class CalendarDayAdapter(
                 // Убеждаемся, что текст виден
                 tvDay.alpha = 1f
                 
-                android.util.Log.d("CalendarDayAdapter", "Set text: ${tvDay.text}, color: $textColor, visibility: ${tvDay.visibility}")
+                // Показываем точку, если есть напоминания на эту дату
+                if (day.hasReminders) {
+                    dotIndicator.visibility = View.VISIBLE
+                    // Для выбранного дня используем белую точку, для остальных - темно-зеленую
+                    if (day.isSelected) {
+                        dotIndicator.setBackgroundResource(R.drawable.bg_calendar_dot_white)
+                    } else {
+                        dotIndicator.setBackgroundResource(R.drawable.bg_calendar_dot)
+                    }
+                } else {
+                    dotIndicator.visibility = View.GONE
+                }
+                
+                android.util.Log.d("CalendarDayAdapter", "Set text: ${tvDay.text}, color: $textColor, visibility: ${tvDay.visibility}, dot: ${dotIndicator.visibility}")
                 
                 itemView.setOnClickListener { onDayClick(day) }
                 itemView.isClickable = true
             } else {
                 tvDay.text = ""
                 tvDay.visibility = View.INVISIBLE
+                dotIndicator.visibility = View.GONE
                 itemView.setOnClickListener(null)
                 itemView.isClickable = false
             }
@@ -62,6 +77,7 @@ class CalendarDayAdapter(
 data class CalendarDay(
     val dayNumber: Int,
     val calendar: Calendar,
-    val isSelected: Boolean = false
+    val isSelected: Boolean = false,
+    val hasReminders: Boolean = false
 )
 

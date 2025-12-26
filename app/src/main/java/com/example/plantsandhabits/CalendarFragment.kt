@@ -139,18 +139,126 @@ class CalendarFragment : Fragment() {
         CoroutineScope(Dispatchers.IO).launch {
             ReminderManager.rescheduleAllReminders(requireContext())
         }
+        updateCalendar() // Обновляем календарь, чтобы точки обновились
         loadTasksForSelectedDate()
     }
 
     private fun updateCalendar() {
+        // Загружаем напоминания для всего месяца асинхронно
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // Вычисляем начало и конец месяца
+                val firstDayOfMonth = currentCalendar.clone() as Calendar
+                firstDayOfMonth.set(Calendar.DAY_OF_MONTH, 1)
+                firstDayOfMonth.set(Calendar.HOUR_OF_DAY, 0)
+                firstDayOfMonth.set(Calendar.MINUTE, 0)
+                firstDayOfMonth.set(Calendar.SECOND, 0)
+                firstDayOfMonth.set(Calendar.MILLISECOND, 0)
+                
+                val lastDayOfMonth = currentCalendar.clone() as Calendar
+                lastDayOfMonth.set(Calendar.DAY_OF_MONTH, lastDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH))
+                lastDayOfMonth.set(Calendar.HOUR_OF_DAY, 23)
+                lastDayOfMonth.set(Calendar.MINUTE, 59)
+                lastDayOfMonth.set(Calendar.SECOND, 59)
+                lastDayOfMonth.set(Calendar.MILLISECOND, 999)
+                
+                // Получаем все напоминания для месяца
+                val monthReminders = withContext(Dispatchers.IO) {
+                    database.plantDao().getRemindersForDate(
+                        firstDayOfMonth.timeInMillis,
+                        lastDayOfMonth.timeInMillis + 1
+                    )
+                }
+                
+                // Создаем Set с датами, на которые есть напоминания (только день, без времени)
+                val datesWithReminders = mutableSetOf<Long>()
+                for (reminder in monthReminders) {
+                    val reminderCalendar = Calendar.getInstance().apply {
+                        timeInMillis = reminder.nextTriggerAt
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    datesWithReminders.add(reminderCalendar.timeInMillis)
+                }
+                
+                // Теперь создаем дни календаря
+                val days = mutableListOf<CalendarDay>()
+
+                // Определяем день недели первого дня (1 = понедельник, 7 = воскресенье)
+                // В Calendar: воскресенье = 1, понедельник = 2, ..., суббота = 7
+                val firstDayOfWeek = when (firstDayOfMonth.get(Calendar.DAY_OF_WEEK)) {
+                    Calendar.MONDAY -> 1
+                    Calendar.TUESDAY -> 2
+                    Calendar.WEDNESDAY -> 3
+                    Calendar.THURSDAY -> 4
+                    Calendar.FRIDAY -> 5
+                    Calendar.SATURDAY -> 6
+                    Calendar.SUNDAY -> 7
+                    else -> 1
+                }
+
+                // Добавляем пустые дни до первого дня месяца
+                for (i in 1 until firstDayOfWeek) {
+                    days.add(CalendarDay(0, Calendar.getInstance(), false, false))
+                }
+
+                // Получаем количество дней в месяце
+                val daysInMonth = firstDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+                // Добавляем дни месяца
+                for (day in 1..daysInMonth) {
+                    val dayCalendar = firstDayOfMonth.clone() as Calendar
+                    dayCalendar.set(Calendar.DAY_OF_MONTH, day)
+                    dayCalendar.set(Calendar.HOUR_OF_DAY, 0)
+                    dayCalendar.set(Calendar.MINUTE, 0)
+                    dayCalendar.set(Calendar.SECOND, 0)
+                    dayCalendar.set(Calendar.MILLISECOND, 0)
+                    
+                    val isSelected = isSameDay(dayCalendar, selectedCalendar)
+                    val hasReminders = datesWithReminders.contains(dayCalendar.timeInMillis)
+                    
+                    days.add(CalendarDay(day, dayCalendar, isSelected, hasReminders))
+                }
+
+                android.util.Log.d("Calendar", "Creating adapter with ${days.size} days, firstDayOfWeek=$firstDayOfWeek, daysInMonth=$daysInMonth, datesWithReminders=${datesWithReminders.size}")
+
+                val newAdapter = CalendarDayAdapter(days) { day ->
+                    selectedCalendar = day.calendar.clone() as Calendar
+                    selectedCalendar.set(Calendar.HOUR_OF_DAY, 0)
+                    selectedCalendar.set(Calendar.MINUTE, 0)
+                    selectedCalendar.set(Calendar.SECOND, 0)
+                    selectedCalendar.set(Calendar.MILLISECOND, 0)
+                    updateCalendar()
+                    loadTasksForSelectedDate()
+                }
+                calendarDayAdapter = newAdapter
+                rvCalendar.adapter = newAdapter
+
+                // Обновляем заголовок месяца
+                val month = currentCalendar.get(Calendar.MONTH)
+                val year = currentCalendar.get(Calendar.YEAR)
+                tvMonthYear.text = "${monthNames[month]} $year"
+
+                // Подзаголовок всегда показывает "Список дел"
+                tvDateSubtitle.text = "Список дел"
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // В случае ошибки создаем календарь без точек
+                createCalendarWithoutReminders()
+            }
+        }
+    }
+    
+    private fun createCalendarWithoutReminders() {
         val days = mutableListOf<CalendarDay>()
 
         // Устанавливаем календарь на первый день месяца
         val firstDayOfMonth = currentCalendar.clone() as Calendar
         firstDayOfMonth.set(Calendar.DAY_OF_MONTH, 1)
 
-        // Определяем день недели первого дня (1 = понедельник, 7 = воскресенье)
-        // В Calendar: воскресенье = 1, понедельник = 2, ..., суббота = 7
+        // Определяем день недели первого дня
         val firstDayOfWeek = when (firstDayOfMonth.get(Calendar.DAY_OF_WEEK)) {
             Calendar.MONDAY -> 1
             Calendar.TUESDAY -> 2
@@ -164,7 +272,7 @@ class CalendarFragment : Fragment() {
 
         // Добавляем пустые дни до первого дня месяца
         for (i in 1 until firstDayOfWeek) {
-            days.add(CalendarDay(0, Calendar.getInstance(), false))
+            days.add(CalendarDay(0, Calendar.getInstance(), false, false))
         }
 
         // Получаем количество дней в месяце
@@ -175,10 +283,8 @@ class CalendarFragment : Fragment() {
             val dayCalendar = firstDayOfMonth.clone() as Calendar
             dayCalendar.set(Calendar.DAY_OF_MONTH, day)
             val isSelected = isSameDay(dayCalendar, selectedCalendar)
-            days.add(CalendarDay(day, dayCalendar, isSelected))
+            days.add(CalendarDay(day, dayCalendar, isSelected, false))
         }
-
-        android.util.Log.d("Calendar", "Creating adapter with ${days.size} days, firstDayOfWeek=$firstDayOfWeek, daysInMonth=$daysInMonth")
 
         val newAdapter = CalendarDayAdapter(days) { day ->
             selectedCalendar = day.calendar.clone() as Calendar
@@ -196,8 +302,6 @@ class CalendarFragment : Fragment() {
         val month = currentCalendar.get(Calendar.MONTH)
         val year = currentCalendar.get(Calendar.YEAR)
         tvMonthYear.text = "${monthNames[month]} $year"
-
-        // Подзаголовок всегда показывает "Список дел"
         tvDateSubtitle.text = "Список дел"
     }
 
